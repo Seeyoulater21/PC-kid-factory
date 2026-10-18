@@ -106,7 +106,7 @@ Outputs for all calls: iterate `resp.steps` where `type == "model_output"`, take
 - [ ] **Step 4: Run** `npm test` → PASS
 - [ ] **Step 5: Commit** `feat: scaffold, data folder and Gemini client`
 
-### Task 2: Main character sheets and style guide (owner-gated)
+### Task 2: Main character sheets and style guide (owner-gated) — DONE 2026-10-18 (sheets are .jpg)
 
 **Files:**
 - Create: `assets/style.md`, `assets/characters/{pinto,friend,cat}.png`, `assets/characters/characters.md`
@@ -120,7 +120,7 @@ Outputs for all calls: iterate `resp.steps` where `type == "model_output"`, take
 - [ ] **Step 4: Owner gate** — show the 3 sheets; regenerate until the owner approves. Do not continue without approval.
 - [ ] **Step 5: Commit** `feat: main character sheets and style guide`
 
-### Task 3: Real-API spike — consistency, voice, music (owner-gated)
+### Task 3: Real-API spike — consistency, voice, music (owner-gated) — DONE 2026-10-18 (results in `assets/characters/characters.md`; seed music in `assets/music/`; `scripts/spike.mjs` not needed)
 
 **Files:**
 - Create: `scripts/spike.mjs`
@@ -153,7 +153,7 @@ Outputs for all calls: iterate `resp.steps` where `type == "model_output"`, take
   - `writeStory(gemini, idea: Idea, {minutes = 5}): Promise<Story>`
   - `validateStory(s): string[]` — list of problems, empty = ok
   - `pageBudget(minutes): {min, max}` → `pageBudget(5)` = `{min: 12, max: 20}`; `max = round(minutes*4)`, `min = round(max*0.6)`
-  - `estimateSeconds(pages): number` — `Σ narration chars / 14 + pages × 1.0 + (pages−1) × 1.5` (Thai ~14 chars/s; replaced by real durations after voice)
+  - `estimateSeconds(pages): number` — `Σ narration chars / 11 + pages × 1.0 + (pages−1) × 1.5` (Thai ~11 chars/s measured; replaced by real durations after voice)
   - `imagePrompt(page, story, style): string`
 
 - [ ] **Step 1: Write failing tests** (fake gemini):
@@ -161,7 +161,7 @@ Outputs for all calls: iterate `resp.steps` where `type == "model_output"`, take
   - `validateStory` flags: 21 pages; 11 pages; empty narration; a page `cast` id not in main characters or `sideCharacters`; narration > 400 chars
   - `writeStory retries once on invalid story then succeeds`; throws `GeminiError` code `"empty"` with Thai "เขียนเรื่องไม่สำเร็จ ลองใหม่" after a second invalid result
   - `imagePrompt` contains style text, every cast member's look, and the phrase forbidding text in images; never mentions any word from a small `FORBIDDEN` list (test lists the reference characters' descriptions: "green cap panda", "pink rabbit", "penguin", "kappa")
-  - `estimateSeconds` of 18 pages × 210 chars = 313.5 s (±0.5)
+  - `estimateSeconds` of 18 pages × 210 chars = 386.2 s (±0.5)
 - [ ] **Step 2: Run** → FAIL
 - [ ] **Step 3: Implement.** The prompts are the product's heart (spec "Storytelling must be fun"): the story prompt sets a warm Thai storyteller voice for ages 4–10; the lesson is carried by a small adventure with a problem, a funny moment, a surprise and a happy ending; short spoken sentences, playful sounds and repetition; Pinto leads, the boy is only ever "เพื่อน"/"เพื่อนของปิ่นโต"; each page is one picturable moment; page count inside `pageBudget`; unsafe or odd topics are steered to a gentle kid-safe version. Ideas prompt: 3 clearly different angles, Thai title + one-line pitch.
 - [ ] **Step 4: Run** → PASS
@@ -230,7 +230,8 @@ Outputs for all calls: iterate `resp.steps` where `type == "model_output"`, take
   - `ensureTrack(mood, gemini): Promise<Track>` — pick, else generate with Lyria (instrumental, gentle, kids' picture-book, ~3 min, no vocals) and add
   - `markUsed(id): void`
 
-- [ ] **Step 1: Write failing tests:** `pickTrack prefers least recently used`; `ensureTrack generates only when the mood is missing` (fake gemini call count 0 then 1); `every track has source and licence` (adding without them throws)
+- Seed: on first run copy `assets/music/seed-*.mp3/.json` into the library if missing.
+- [ ] **Step 1: Write failing tests:** `seed tracks are installed once`; `pickTrack prefers least recently used`; `ensureTrack generates only when the mood is missing` (fake gemini call count 0 then 1); `every track has source and licence` (adding without them throws)
 - [ ] **Step 2: Run** → FAIL
 - [ ] **Step 3: Implement**
 - [ ] **Step 4: Run** → PASS
