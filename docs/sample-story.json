@@ -1,0 +1,195 @@
+{
+  "topic": "กินผัก",
+  "ideas": [
+    {
+      "title": "ภารกิจเคี้ยวกรุบกรับ",
+      "pitch": "เมื่อเพื่อนแอบเขี่ยบรอกโคลีทิ้งแต่เจ้าแมวดำดันคาบวิ่งหนี ปิ่นโตจึงชวนเปิดศึกแข่งทำเสียงเคี้ยวผักกรุบกรับสุดฮาเพื่อล่อให้แมวดำกลับมา!"
+    },
+    {
+      "title": "ไดโนเสาร์บุกป่าบรอกโคลี",
+      "pitch": "จานข้าวกลายเป็นป่าดึกดำบรรพ์ที่ปิ่นโตกับเพื่อนต้องแปลงร่างเป็นไดโนเสาร์ยักษ์ แข่งกันเขมือบต้นไม้ผักให้เกลี้ยงก่อนโดนเจ้าแมวดำจอมซนแย่งไป!"
+    },
+    {
+      "title": "ตามล่าสมบัติผักเจ็ดสี",
+      "pitch": "เจ้าแมวดำคาบช้อนคันโปรดไปซ่อนไว้ในดงผักหลากสี ปิ่นโตกับเพื่อนเลยต้องออกผจญภัยไขปริศนาตามล่าสมบัติด้วยการชิมผักสีแปลกตาสุดตื่นเต้น!"
+    }
+  ],
+  "idea": {
+    "title": "ตามล่าสมบัติผักเจ็ดสี",
+    "pitch": "เจ้าแมวดำคาบช้อนคันโปรดไปซ่อนไว้ในดงผักหลากสี ปิ่นโตกับเพื่อนเลยต้องออกผจญภัยไขปริศนาตามล่าสมบัติด้วยการชิมผักสีแปลกตาสุดตื่นเต้น!"
+  },
+  "estimateSeconds": 325.4,
+  "story": {
+    "title": "ตามล่าสมบัติผักเจ็ดสี",
+    "mood": "playful",
+    "sideCharacters": [
+      {
+        "id": "worm",
+        "look": "A tiny, cute chubby green caterpillar with big round eyes and a little yellow straw hat."
+      },
+      {
+        "id": "grandma",
+        "look": "A kind elderly Thai grandmother with silver hair in a bun, wearing a floral blue blouse, a traditional sarong, and carrying a woven bamboo basket."
+      }
+    ],
+    "pages": [
+      {
+        "narration": "ว้าย! เจ้าแมวดำแสนซนคาบช้อนทองคำคันโปรดของปิ่นโตวิ่งหนีไปแล้ว ฟึ่บเดียวก็มุดหายเข้าไปในแปลงผักหลังบ้าน ปิ่นโตกับเพื่อนรีบวิ่งตามไปติดๆ \"หยุดนะเจ้าแมวดำ เอาช้อนคืนมานะ!\" ปิ่นโตตะโกนเรียก",
+        "scene": "In the sunny backyard kitchen patio of Pinto's home, Pinto and the friend are running toward the big vegetable garden. Ahead of them, the black cat with its red scarf is darting into the leafy garden patch holding a shiny golden spoon in its mouth. Pinto looks surprised and determined, while the friend has his mouth wide open in excitement.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat"
+        ]
+      },
+      {
+        "narration": "โอ้โห แปลงผักของคุณยายกว้างใหญ่เหมือนป่าวิเศษเลย มีทั้งสีแดง สีส้ม สีม่วง เต็มไปหมด หนูว่าเจ้าแมวดำแอบซ่อนอยู่ที่ไหนนะ ปิ่นโตป้องปากมองหา ส่วนเพื่อนก็ก้มๆ เงยๆ ดมกลิ่นเหมือนลูกหมาเลย",
+        "scene": "In the lush backyard vegetable garden filled with oversized colorful vegetable plants, Pinto stands on her tiptoes shielding her eyes to look around. Beside her, the friend is on all fours sniffing a giant purple cabbage like a puppy. Red tomatoes, orange carrots, and tall green vines surround them.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "\"เมี้ยว!\" เสียงร้องดังมาจากยอดซุ้มถั่วฝักยาว เจ้าแมวดำนั่งแกว่งหางอยู่ข้างบนโน้น แต่ช้อนทองคำไม่อยู่ที่ปากแล้ว มันเอาไปซ่อนไว้ไหนนะ เพื่อนของปิ่นโตชี้มือขึ้นไป \"ฉันจะปีนไปจับเอง ฮึบๆ!\"",
+        "scene": "In the backyard vegetable garden beside a tall wooden trellis covered in long green beans, the black cat with its red scarf sits happily on top of the trellis, empty-mouthed. Below, the friend points up eagerly while Pinto looks up with curious eyes, wondering where the spoon went.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat"
+        ]
+      },
+      {
+        "narration": "เพื่อนของปิ่นโตกระโดดตะครุบหางแมวดำ ปุ๊บปั๊บ! เท้าดันไปเหยียบลูกฟักทองยักษ์กลมป๊อก ว้าย! ฟักทองกลิ้งหลุนๆ พาเพื่อนไถลไปชนกองใบกะหล่ำปลีดังโครมใหญ่ ใบไม้ปลิวว่อนเต็มหัวเลย",
+        "scene": "In the pumpkin patch section of the backyard vegetable garden, the friend is slipping comically on a round giant orange pumpkin, arms flailing in the air, crashing into a big pile of giant green and purple cabbage leaves that fly everywhere. Pinto gasps and covers her mouth with both hands, while the black cat watches from a low branch.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat"
+        ]
+      },
+      {
+        "narration": "เพื่อนโผล่หัวออกมาจากกองผัก มีใบกะหล่ำปลีครอบหัวเหมือนหมวกยอดมนุษย์เลย ปิ่นโตหัวเราะคิกคัก แต่เอ๊ะ ที่พื้นมีรอยอุ้งเท้าแมวย่ำเป็นทางยาว \"ดูนั่นสิเพื่อน รอยเท้าแมวดำนำไปทางแปลงมะเขือเทศ!\"",
+        "scene": "In the backyard vegetable garden among scattered cabbage leaves, the friend sits on the dirt grinning sillily with a large curly purple cabbage leaf sitting on his head like a helmet. Pinto points down at a trail of muddy paw prints on the garden path leading toward bright red tomato bushes.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "ทั้งสองคนย่องตามรอยเท้าไป เจอเจ้าหนอนน้อยใส่หมวกฟางกำลังคลานดุ๊กดิ๊กอยู่บนมะเขือเทศสีแดงสด เจ้าแมวดำนั่งเฝ้าอยู่ข้างๆ ไม่ยอมหลบเลย เหมือนกำลังบอกใบ้อะไรสักอย่าง ปิ่นโตเอียงคอสงสัย",
+        "scene": "In the tomato patch of the backyard vegetable garden, close up on a low bush of shiny red cherry tomatoes. The black cat with its red scarf sits guard beside a tiny chubby green caterpillar wearing a yellow straw hat on a tomato. Pinto and the friend crouch down closely, tilting their heads in curiosity.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat",
+          "worm"
+        ]
+      },
+      {
+        "narration": "ปิ่นโตปิ๊งไอเดียขึ้นมาทันที \"อ๋อ! ถ้าอยากให้แมวดำนำทางต่อ เราต้องเล่นเกมชิมผักเพิ่มพลังสีรุ้งกัน!\" ปิ่นโตชวนเพื่อนท่องคาถา \"ง่ำๆ กรุบกรอบ ชิมผักเจ็ดสี พลังมาทันที ปิ๊งป่อง!\"",
+        "scene": "In the tomato patch of the backyard vegetable garden, Pinto jumps up with a bright finger-pointing gesture, smiling wide with an idea. The friend claps his hands excitedly. The black cat perks its ears up, and the tiny green caterpillar in the straw hat looks happy on its leaf.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat",
+          "worm"
+        ]
+      },
+      {
+        "narration": "ปิ่นโตเด็ดมะเขือเทศราชินีสีแดงลูกจิ๋วที่ล้างสะอาดจากตะกร้าของคุณยาย ส่งให้เพื่อนหนึ่งลูก พอกัดเข้าไปดัง เป๊าะ! น้ำหวานฉ่ำกระจายเต็มปาก \"หืม หวานอมเปรี้ยว สดชื่นจังเลย!\" เพื่อนตาโตด้วยความติดใจ",
+        "scene": "In the tomato patch of the backyard vegetable garden beside a clean bamboo basket and a watering can, Pinto and the friend each bite into a shiny red cherry tomato. Their cheeks are puffed and eyes wide with delight at the sweet juicy taste, while the black cat watches eagerly.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat"
+        ]
+      },
+      {
+        "narration": "เจ้าแมวดำร้อง \"เมี้ยว!\" แล้ววิ่งนำทางไปที่แปลงสีส้มกับสีเหลืองทันที เพื่อนรีบดึงหัวแครอทขึ้นมาล้างน้ำซู่ซ่า แล้วร้องเพลงพร้อมปิ่นโต \"ง่ำๆ กรุบกรอบ ชิมผักเจ็ดสี พลังมาทันที ปิ๊งป่อง!\"",
+        "scene": "By the outdoor garden tap in the backyard vegetable garden, the friend holds a bright orange carrot under splashing water while Pinto holds a yellow bell pepper slices. Both children are singing joyfully with open mouths. The black cat sits on a wooden crate nearby, swishing its tail.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat"
+        ]
+      },
+      {
+        "narration": "ทั้งคู่กัดแครอทสีส้มกับพริกหวานสีเหลืองคำโต เสียงดัง กร๊อบแกร๊บ! เหมือนกระต่ายน้อยเคี้ยวอาหารเลย \"กรอบอร่อย ไม่เผ็ดสักนิด!\" เพื่อนทำท่าเบ่งกล้ามโชว์เจ้าหนอนน้อยที่คลานตามมาเชียร์",
+        "scene": "In the carrot and pepper bed of the backyard vegetable garden, Pinto munches happily on a slice of yellow bell pepper while the friend crunches on an orange carrot and flexes his little arm muscles. The tiny green caterpillar in the straw hat sits on a leaf nearby, cheering them on.",
+        "cast": [
+          "pinto",
+          "friend",
+          "worm"
+        ]
+      },
+      {
+        "narration": "คราวนี้เจ้าแมวดำกระโดดตุ้บไปเกาะที่กอผักสีเขียวกับสีม่วง มีทั้งบล็อกโคลี่ฟูฟ่องและกะหล่ำปลีม่วงสดใส หนูพร้อมจะท่องคาถาไปกับปิ่นโตหรือยังจ๊ะ \"ง่ำๆ กรุบกรอบ ชิมผักเจ็ดสี พลังมาทันที ปิ๊งป่อง!\"",
+        "scene": "In the middle of the backyard vegetable garden surrounded by green broccoli plants and purple cabbages, the black cat with its red scarf stands on its hind legs pawing at a big purple cabbage. Pinto and the friend strike a superhero pose together, chanting happily.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat"
+        ]
+      },
+      {
+        "narration": "พอเคี้ยวผักสีเขียวกับสีม่วงปุ๊บ เพื่อนก็ทำท่าแปลงร่างเป็นจรวด วิ่งฉิวตามเจ้าแมวดำไปยังพุ่มไม้ลึกลับท้ายสวน ที่นั่นมีหัวไชเท้าสีขาวอวบอ้วน กับดอกอัญชันสีน้ำเงินครามบานสะพรั่งอยู่เต็มไปหมด",
+        "scene": "At the back corner of the backyard vegetable garden near a lush bush of deep blue butterfly pea flowers and white radishes peeking from the soil, the friend zooms forward with his arms stretched out like airplane wings. Pinto runs right behind him laughing, following the black cat.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat"
+        ]
+      },
+      {
+        "narration": "ปิ่นโตเห็นด้ามช้อนสีทองโผล่ออกมาจากใต้พุ่มดอกอัญชันสีน้ำเงินแล้ว! \"เจอสมบัติแล้วเพื่อน!\" ทั้งคู่รีบชิมหัวไชเท้าสีขาวกับดอกอัญชันเป็นด่านสุดท้าย ครบเจ็ดสีพอดีเป๊ะ กรุบกรอบหวานมันที่สุดเลย",
+        "scene": "Under the blue butterfly pea flower bush in the backyard vegetable garden, a shiny golden spoon handle sticks out from the leaves. Pinto points at it triumphantly while chewing a piece of crisp white radish, and the friend pops a blue flower into his mouth with a big grin.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat"
+        ]
+      },
+      {
+        "narration": "แต่พอปิ่นโตแหวกพุ่มไม้เข้าไป ว้าย! ไม่ใช่แค่ช้อนทองคำคันเดียวซะแล้ว ข้างในนั้นมีคุณยายนั่งยิ้มแป้นอยู่ พร้อมกับชามสลัดผักเจ็ดสีชามยักษ์ และถ้วยน้ำสลัดสีทองหอมกรุ่น นี่มันปาร์ตี้ลับนี่นา!",
+        "scene": "In a cozy hidden clearing behind the flower bushes in the backyard garden, Grandma sits at a wooden picnic table with a warm smile. On the table is a giant glass bowl overflowing with a seven-color rainbow salad and Pinto's golden spoon resting beside it. Pinto and the friend gasp in joyful surprise.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat",
+          "grandma"
+        ]
+      },
+      {
+        "narration": "\"เก่งมากจ้ะนักล่าสมบัติตัวน้อย คุณยายให้เจ้าแมวดำไปคาบช้อนมาชวนพวกหนูเข้าสวนเองแหละ\" คุณยายบอกพร้อมเสียงหัวเราะ ที่แท้เจ้าแมวดำก็คือผู้ช่วยคุณยายนี่เอง มันร้องเมี้ยวแล้วเอาหัวถูขาปิ่นโตอย่างอ้อนๆ",
+        "scene": "At the wooden picnic table in the garden clearing, Grandma chuckles kindly while handing the golden spoon to Pinto. The black cat with its red scarf rubs its head affectionately against Pinto's leg, looking very proud. The friend scratches his head and laughs at the big surprise.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat",
+          "grandma"
+        ]
+      },
+      {
+        "narration": "ปิ่นโตกับเพื่อนใช้ช้อนทองคำตักสลัดเจ็ดสีใส่จานตัวเอง พวกเขาร้องเพลงคาถาพร้อมกันอีกครั้ง \"ง่ำๆ กรุบกรอบ ชิมผักเจ็ดสี พลังมาทันที ปิ๊งป่อง!\" เสียงเคี้ยวผักดังกร๊อบแกร๊บประสานเสียงกันสนุกสนาน",
+        "scene": "At the garden picnic table, Pinto uses her golden spoon to scoop bright colorful vegetables from the big bowl into smaller plates for herself and the friend. Both children are singing and beaming with joy as Grandma watches warmly, and the tiny caterpillar sits on the edge of the table.",
+        "cast": [
+          "pinto",
+          "friend",
+          "grandma",
+          "worm"
+        ]
+      },
+      {
+        "narration": "ทันใดนั้น เพื่อนก็หยิบใบกะหล่ำปลีม่วงใบใหญ่ขึ้นมาสวมหัวเป็นหมวกยอดมนุษย์เหมือนตอนล้มกลิ้งอีกแล้ว \"ข้าคืออัศวินผักเจ็ดสี ฮ่าๆ!\" ปิ่นโตกับคุณยายขำก๊าก ส่วนเจ้าแมวดำก็นอนพุงกางหลับปุ๋ยไปเลย",
+        "scene": "At the garden picnic table in the warm afternoon light, the friend stands up proudly wearing a big purple cabbage leaf on his head like a helmet again, holding a fork with a cherry tomato on it. Pinto and Grandma laugh heartily, while the black cat sleeps belly-up on the picnic bench.",
+        "cast": [
+          "pinto",
+          "friend",
+          "cat",
+          "grandma"
+        ]
+      }
+    ]
+  }
+}
