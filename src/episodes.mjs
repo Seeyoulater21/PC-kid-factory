@@ -3,13 +3,18 @@ import path from "node:path";
 import { dataDir } from "./data.mjs";
 
 const episodesDir = () => path.join(dataDir(), "episodes");
-const epDir = (id) => path.join(episodesDir(), id);
+const ID_RE = /^ep-\d{8}-\d{6}(-\d+)?$/;
+const epDir = (id) => {
+  if (typeof id !== "string" || !ID_RE.test(id)) throw new Error("Bad episode id");
+  return path.join(episodesDir(), id);
+};
 const ideasPath = () => path.join(dataDir(), "saved-ideas.json");
 
+let tmpCounter = 0;
 // Atomic write: temp file in the same folder, then rename over the target.
 function writeJson(file, obj) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  const tmp = `${file}.${process.pid}.tmp`;
+  const tmp = `${file}.${process.pid}.${++tmpCounter}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(obj, null, 2));
   fs.renameSync(tmp, file);
 }
@@ -70,11 +75,11 @@ export function listEpisodes() {
   return out.sort((a, b) => (a.createdAt === b.createdAt ? b.id.localeCompare(a.id, "en", { numeric: true }) : b.createdAt.localeCompare(a.createdAt)));
 }
 
-// n is the 0-based page index. Returns an updated copy; the caller saves it.
+// n is the 1-based page number (1 = first page). Returns an updated copy; the caller saves it.
 export function editNarration(ep, n, text) {
-  if (!Number.isInteger(n) || n < 0 || n >= ep.story.pages.length) throw new Error(`No page ${n}`);
+  if (!Number.isInteger(n) || n < 1 || n > ep.story.pages.length) throw new Error(`No page ${n}`);
   const next = structuredClone(ep);
-  const page = next.story.pages[n];
+  const page = next.story.pages[n - 1];
   page.narration = text;
   page.voice = { state: "todo" }; // old audio no longer matches the text
   return next;

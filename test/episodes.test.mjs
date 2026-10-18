@@ -82,13 +82,15 @@ test("listEpisodes is empty on a fresh dir", () => {
 test("editNarration changes text, resets that page's voice, keeps the original", () => {
   tmp();
   const ep = createEpisode(sample.idea, sample.story);
-  ep.story.pages[1].voice = { state: "done", file: "p02.wav", seconds: 5, forText: ep.story.pages[1].narration };
-  const before = ep.story.pages[1].narration;
+  ep.story.pages[0].voice = { state: "done", file: "p01.wav", seconds: 5, forText: ep.story.pages[0].narration };
+  const before = ep.story.pages[0].narration;
   const out = editNarration(ep, 1, "ข้อความใหม่");
-  assert.equal(out.story.pages[1].narration, "ข้อความใหม่");
-  assert.deepEqual(out.story.pages[1].voice, { state: "todo" });
-  assert.equal(ep.story.pages[1].narration, before);
-  assert.throws(() => editNarration(ep, 99, "x"));
+  assert.equal(out.story.pages[0].narration, "ข้อความใหม่");
+  assert.deepEqual(out.story.pages[0].voice, { state: "todo" });
+  assert.equal(ep.story.pages[0].narration, before);
+  assert.equal(editNarration(ep, ep.story.pages.length, "z").story.pages.at(-1).narration, "z");
+  assert.throws(() => editNarration(ep, 0, "x"));
+  assert.throws(() => editNarration(ep, ep.story.pages.length + 1, "x"));
 });
 
 test("saveIdeas appends and listSavedIdeas returns them", () => {
@@ -112,4 +114,10 @@ test("removeSavedIdea removes by title and ignores unknown", () => {
   removeSavedIdea("A");
   removeSavedIdea("nope");
   assert.deepEqual(listSavedIdeas().map((i) => i.title), ["B"]);
+});
+
+test("episode ids that are not ep-… are rejected (no path traversal)", () => {
+  tmp();
+  assert.throws(() => loadEpisode("../x"));
+  assert.throws(() => saveEpisode({ id: "../x", story: { pages: [] } }));
 });
