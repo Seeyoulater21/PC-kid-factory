@@ -1,6 +1,6 @@
 # Kid Factory — design
 
-Date: 2026-10-18 · Status: draft for owner approval (builder check done)
+Date: 2026-10-18 · Status: approved by owner 2026-10-18
 
 ## Intent
 
@@ -108,7 +108,8 @@ to post, without calling the owner.
 ### Channel intro / outro
 - The owner will supply the channel's own intro and outro clips. Each is **locked at 5 seconds**. The app
   adds them automatically at the start and end of every video. The story itself has no cover/title page.
-  (Claude's reading of the owner's answer — confirm when the clips arrive.)
+  Owner confirmed; the real clips arrive later. Until then build with a **placeholder 5-second intro and outro**
+  (simple generated mockup clips) so the slot works and can be swapped by dropping in the real files.
 
 ### Gemini key
 - Testing v1 on the owner's Mac uses **the friend's Gemini key**; the owner will put it in the local
