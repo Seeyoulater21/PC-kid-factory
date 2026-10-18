@@ -58,7 +58,9 @@ src/render/paper.mjs    procedural paper texture
 src/render/book.mjs     draws one frame: desk, page stack, page, page turn
 src/render/video.mjs    frames → ffmpeg, audio mix, intro/outro concat, export
 public/index.html, public/app.js, public/style.css   the four screens
-assets/characters/      pinto.png, friend.png, cat.png, characters.md (Task 2)
+assets/characters/      pinto.jpg, friend.jpg, cat.jpg, origin.jpg, characters.md (Task 2)
+assets/cast.json        machine-readable cast + voice (Task 4)
+assets/music/           seed-*.mp3 + .json (Task 3)
 assets/style.md         style prompt text (Task 2)
 assets/clips/intro.mp4, outro.mp4   placeholders (Task 9), replaced by owner's real clips
 scripts/spike.mjs       Task 3 real-API spike (kept as a dev tool)
@@ -161,7 +163,7 @@ Outputs for all calls: iterate `resp.steps` where `type == "model_output"`, take
   - `validateStory` flags: 21 pages; 11 pages; empty narration; a page `cast` id not in main characters or `sideCharacters`; narration > 400 chars
   - `writeStory retries once on invalid story then succeeds`; throws `GeminiError` code `"empty"` with Thai "เขียนเรื่องไม่สำเร็จ ลองใหม่" after a second invalid result
   - `imagePrompt` contains style text, every cast member's look, and the phrase forbidding text in images; never mentions any word from a small `FORBIDDEN` list (test lists the reference characters' descriptions: "green cap panda", "pink rabbit", "penguin", "kappa")
-  - `estimateSeconds` of 18 pages × 210 chars = 386.2 s (±0.5)
+  - `estimateSeconds` of 18 pages × 210 chars = 387.1 s (±0.5)
 - [ ] **Step 2: Run** → FAIL
 - [ ] **Step 3: Implement.** The prompts are the product's heart (spec "Storytelling must be fun"): the story prompt sets a warm Thai storyteller voice for ages 4–10; the lesson is carried by a small adventure with a problem, a funny moment, a surprise and a happy ending; short spoken sentences, playful sounds and repetition; Pinto leads, the boy is only ever "เพื่อน"/"เพื่อนของปิ่นโต"; each page is one picturable moment; page count inside `pageBudget`; unsafe or odd topics are steered to a gentle kid-safe version. Ideas prompt: 3 clearly different angles, Thai title + one-line pitch.
 - [ ] **Step 4: Run** → PASS
