@@ -18,6 +18,7 @@ import { makeImages, makeVoices, staleVoices, estimateCost } from "./pages.mjs";
 import { listTracks } from "./music.mjs";
 import { chooseMusic } from "./render/video.mjs";
 import { buildTimeline, timelineSeconds, TIMING } from "./timeline.mjs";
+import { checkUpdate, stageUpdate, startSwap, canSelfUpdate, currentVersion, takeResult } from "./update.mjs";
 
 export const DEFAULT_PORT = 4848;
 const PUBLIC_DIR = fileURLToPath(new URL("../public/", import.meta.url));
@@ -49,6 +50,8 @@ const T = {
   longNarration: `คำเล่ายาวเกินไป (ไม่เกิน ${MAX_NARRATION} ตัวอักษร)`,
   badMusic: "ไม่พบเพลงนี้ เลือกเพลงใหม่",
   renderFailed: "สร้างวิดีโอไม่สำเร็จ",
+  busyUpdate: "กำลังทำงานอยู่ รอให้เสร็จก่อนแล้วค่อยอัปเดต",
+  devCopy: "โปรแกรมชุดนี้อัปเดตเองไม่ได้ (ชุดสำหรับพัฒนา)",
   someFailed: (pages, why) => `หน้า ${pages.join(", ")} ทำไม่สำเร็จ: ${why}`,
 };
 
@@ -106,7 +109,8 @@ const epRoot = (id) => path.join(dataDir(), "episodes", id);
 
 /**
  * opts: gemini (object or () => object; default: fake when KIDFACTORY_FAKE=1, else real with the saved key),
- * openFolder(dir), render(ep, onProgress) → output path (default: worker thread).
+ * openFolder(dir), render(ep, onProgress) → output path (default: worker thread),
+ * updater { check, stage, swap, canUpdate, result, exit } (default: update.mjs; exit code 75 = restarting for an update).
  */
 export function createServer(opts = {}) {
   const openFolder = opts.openFolder ?? defaultOpenFolder;
@@ -114,6 +118,13 @@ export function createServer(opts = {}) {
   let fake = null;
   const live = new Map(); // id → the one in-memory episode every job and edit shares
   const jobs = new Map(); // id → {images?, voices?, render?}
+  const updater = {
+    check: checkUpdate, stage: stageUpdate, swap: startSwap, canUpdate: canSelfUpdate, result: takeResult,
+    exit: () => setTimeout(() => process.exit(75), 300),
+    ...opts.updater,
+  };
+  let updating = false;
+  let resultShown = false;
 
   function gemini() {
     if (opts.gemini) return typeof opts.gemini === "function" ? opts.gemini() : opts.gemini;
@@ -225,7 +236,31 @@ export function createServer(opts = {}) {
 
   // ---- routes ----
   const routes = [
-    ["GET", /^\/api\/state$/, () => ({ hasKey: hasKey(), fake: process.env.KIDFACTORY_FAKE === "1", savedIdeas: listSavedIdeas(), episodes: listEpisodes() })],
+    ["GET", /^\/api\/state$/, () => ({
+      hasKey: hasKey(), fake: process.env.KIDFACTORY_FAKE === "1", savedIdeas: listSavedIdeas(), episodes: listEpisodes(),
+      version: currentVersion(),
+      updated: resultShown ? null : ((resultShown = true), updater.result()), // last update's outcome, shown once
+    })],
+    ["GET", /^\/api\/update$/, async () => {
+      const { current, latest, available, notes } = await updater.check();
+      return { current, latest, available, notes, canUpdate: updater.canUpdate() };
+    }],
+    ["POST", /^\/api\/update$/, async () => {
+      if (updating || [...jobs.values()].some((j) => Object.values(j).some((x) => x?.running))) throw new HttpError(409, T.busyUpdate);
+      if (!updater.canUpdate()) throw new HttpError(400, T.devCopy);
+      updating = true;
+      try {
+        const r = await updater.check();
+        if (!r.available) return { upToDate: true, current: r.current };
+        const staged = await updater.stage(r.manifest);
+        updater.swap({ staged, version: r.latest });
+        updater.exit();
+        return { restarting: true, version: r.latest };
+      } catch (e) {
+        updating = false;
+        throw e;
+      }
+    }],
     ["POST", /^\/api\/key$/, (m, body) => {
       const key = typeof body.key === "string" ? body.key.trim() : "";
       if (!key || key.length > 500 || /\s/.test(key)) throw new HttpError(400, T.emptyKey);

@@ -22,6 +22,18 @@ Build the installer on macOS: `scripts/make-win.sh` (needs `brew install makensi
 
 On first run the app asks for a Gemini API key; it is stored only in `config.json` inside the data folder.
 
+## Updates
+
+The app checks the latest GitHub release on start (and from "ตรวจหาอัปเดต" in the top bar). When a newer
+version exists it shows a banner; "อัปเดตเลย" downloads this platform's package, checks its size and SHA-256,
+swaps the app folder (the previous one is kept) and restarts. If the new version does not start within a
+minute, the previous one is put back. The data folder is never touched. Updates are refused while
+images, voices or a video are being made.
+
+Release a fix: bump `version` in package.json, commit, write the Thai banner lines into a text file, then
+`scripts/make-release.sh notes.txt` and `gh release create v<version> build/release/* --title "Kid Factory <version>" --notes-file <notes>`.
+Bundled Node/ffmpeg change only with a new installer (`KidFactory-Setup-<version>.exe`, also in the release).
+
 ## Data
 
 Everything generated lives in `~/Documents/KidFactory` by default

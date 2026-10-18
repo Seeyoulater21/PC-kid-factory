@@ -43,7 +43,7 @@ test("profileInUse: a locked lockfile means an Edge window is still open", () =>
 test("launcher starts the server on a free port, then reuses it", async (t) => {
   if ((await pickPort())?.reuse) return t.skip("a real Kid Factory is running on this machine");
   const data = fs.mkdtempSync(path.join(os.tmpdir(), "kf-launch-"));
-  const env = { ...process.env, KIDFACTORY_DATA: data, KIDFACTORY_FAKE: "1", KIDFACTORY_NO_WINDOW: "1" };
+  const env = { ...process.env, KIDFACTORY_DATA: data, KIDFACTORY_UPDATE_DIR: data, KIDFACTORY_FAKE: "1", KIDFACTORY_NO_WINDOW: "1" };
   const script = fileURLToPath(new URL("../src/launcher.mjs", import.meta.url));
   const run = () => spawn(process.execPath, [script], { env });
   const first = run();

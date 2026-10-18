@@ -24,7 +24,8 @@ async function api(method, url, body) {
   return json;
 }
 
-function showError(e) {
+function showError(e, icon = "⚠") {
+  $("#msgIcon").textContent = icon;
   $("#msgText").textContent = e?.message || String(e);
   $("#msg").hidden = false;
   $("#msgOk").focus();
@@ -77,6 +78,17 @@ async function route() {
   }
   $("#fakeBadge").hidden = !state.fake;
   $("#keyLink").hidden = !state.hasKey;
+  $("#ver").textContent = `v${state.version}`;
+  if (!updateChecked) {
+    updateChecked = true;
+    $("#updLink").hidden = false;
+    if (state.updated) {
+      showError(new Error(state.updated.ok
+        ? `อัปเดตเป็นเวอร์ชัน ${state.updated.to} แล้ว`
+        : `อัปเดตไม่สำเร็จ ยังใช้เวอร์ชันเดิม (${state.updated.from}) ได้ตามปกติ`), state.updated.ok ? "✓" : "⚠");
+    }
+    checkUpdate(true);
+  }
   const h = location.hash || "#/";
   let m;
   if (!state.hasKey || h === "#/key") return keyScreen();
@@ -86,6 +98,59 @@ async function route() {
   return homeScreen();
 }
 window.addEventListener("hashchange", route);
+
+// ---------- self-update ----------
+let updateChecked = false;
+
+async function checkUpdate(silent) {
+  let u;
+  try {
+    u = await api("GET", "/api/update");
+  } catch (e) {
+    if (!silent) showError(e);
+    return;
+  }
+  const banner = $("#updBanner");
+  if (!u.available || !u.canUpdate) {
+    banner.hidden = true;
+    if (!silent) showError(new Error(u.available ? `มีเวอร์ชันใหม่ ${u.latest} แต่โปรแกรมชุดนี้อัปเดตเองไม่ได้` : `เป็นเวอร์ชันล่าสุดแล้ว (${u.current})`), u.available ? "⚠" : "✓");
+    return;
+  }
+  banner.innerHTML = `
+    <div class="upd-row">
+      <b>มีเวอร์ชันใหม่ ${esc(u.latest)}</b>
+      <button id="updNow" class="btn">อัปเดตเลย</button>
+    </div>
+    ${u.notes.length ? `<ul>${u.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}`;
+  banner.hidden = false;
+  $("#updNow").onclick = () => doUpdate(u.latest);
+}
+
+async function doUpdate(version) {
+  busy("กำลังอัปเดต…", "ดาวน์โหลดแล้วโปรแกรมจะเปิดใหม่เอง");
+  let r;
+  try {
+    r = await api("POST", "/api/update", {});
+  } catch (e) {
+    idle();
+    return showError(e);
+  }
+  if (!r.restarting) {
+    idle();
+    $("#updBanner").hidden = true;
+    return showError(new Error(`เป็นเวอร์ชันล่าสุดแล้ว (${r.current})`), "✓");
+  }
+  busy("กำลังเปิดโปรแกรมใหม่…", "รอสักครู่");
+  // the window may close and reopen by itself; if it stays, reload once the new version answers
+  for (;;) {
+    await new Promise((res) => setTimeout(res, 3000));
+    try {
+      const s = await (await fetch("/api/state")).json();
+      if (s.version === version) return location.reload();
+    } catch {}
+  }
+}
+$("#updLink").onclick = (e) => { e.preventDefault(); checkUpdate(false); };
 
 // ---------- 0 · key ----------
 function keyScreen() {

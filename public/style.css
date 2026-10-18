@@ -190,3 +190,9 @@ video { width: 100%; border-radius: 8px; background: #000; margin-top: 10px; dis
   border: 4px solid var(--grey); border-top-color: var(--amber); animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.upd { background: var(--amber-soft); border-bottom: 1px solid var(--line); padding: 8px 18px; font-size: 13px; }
+.upd-row { display: flex; align-items: center; gap: 12px; }
+.upd ul { margin: 6px 0 0; padding-left: 18px; color: var(--ink); }
+.upd li { margin: 2px 0; }
+#ver { font-size: 12px; }

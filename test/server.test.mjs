@@ -30,7 +30,7 @@ function fakeGemini({ slow = 0, fail } = {}) {
 async function start(t, opts = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "kf-srv-"));
   process.env.KIDFACTORY_DATA = root;
-  const server = createServer({ gemini: fakeGemini(), openFolder: () => {}, ...opts });
+  const server = createServer({ gemini: fakeGemini(), openFolder: () => {}, ...opts, updater: { result: () => null, ...opts.updater } });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${server.address().port}`;
   t.after(async () => {
@@ -343,4 +343,63 @@ test("job and page errors never carry the key", async (t) => {
   const jobText = (await api("GET", `/api/episodes/${id}/job`)).text;
   const epText = (await api("GET", `/api/episodes/${id}`)).text;
   assert.ok(!jobText.includes(KEY) && !epText.includes(KEY));
+});
+
+// ---- self-update ----
+function fakeUpdater(over = {}) {
+  const calls = [];
+  return {
+    calls,
+    check: async () => ({ current: "0.2.0", latest: "0.3.0", available: true, notes: ["ใหม่"], manifest: { version: "0.3.0" } }),
+    stage: async (m) => { calls.push(["stage", m.version]); return "/staged"; },
+    swap: (j) => calls.push(["swap", j.staged, j.version]),
+    canUpdate: () => true,
+    exit: () => calls.push(["exit"]),
+    ...over,
+  };
+}
+
+test("state carries the app version and the last update's outcome once", async (t) => {
+  const { api } = await start(t, { updater: { result: () => ({ ok: true, from: "0.1.0", to: "0.2.0" }) } });
+  const first = (await api("GET", "/api/state")).json;
+  assert.match(first.version, /^\d+\.\d+\.\d+$/);
+  assert.deepEqual(first.updated, { ok: true, from: "0.1.0", to: "0.2.0" });
+  assert.equal((await api("GET", "/api/state")).json.updated, null);
+});
+
+test("GET /api/update reports a newer version without the manifest", async (t) => {
+  const { api } = await start(t, { updater: fakeUpdater() });
+  const { json } = await api("GET", "/api/update");
+  assert.deepEqual(json, { current: "0.2.0", latest: "0.3.0", available: true, notes: ["ใหม่"], canUpdate: true });
+});
+
+test("POST /api/update stages, hands over to the swap helper and exits", async (t) => {
+  const u = fakeUpdater();
+  const { api } = await start(t, { updater: u });
+  const r = await api("POST", "/api/update", {});
+  assert.deepEqual(r.json, { restarting: true, version: "0.3.0" });
+  assert.deepEqual(u.calls, [["stage", "0.3.0"], ["swap", "/staged", "0.3.0"], ["exit"]]);
+  assert.equal((await api("POST", "/api/update", {})).status, 409); // already updating
+});
+
+test("POST /api/update refuses while a job runs, and on a copy that cannot update itself", async (t) => {
+  const u = fakeUpdater();
+  const { api } = await start(t, { gemini: fakeGemini({ slow: 200 }), updater: u });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  await api("POST", `/api/episodes/${id}/voices`, {});
+  const busy = await api("POST", "/api/update", {});
+  assert.equal(busy.status, 409);
+  assert.equal(busy.json.error, "กำลังทำงานอยู่ รอให้เสร็จก่อนแล้วค่อยอัปเดต");
+  await waitJob(api, id, "voices");
+  assert.deepEqual(u.calls, []);
+
+  const { api: api2 } = await start(t, { updater: fakeUpdater({ canUpdate: () => false }) });
+  assert.equal((await api2("POST", "/api/update", {})).status, 400);
+});
+
+test("POST /api/update when already up to date does nothing", async (t) => {
+  const u = fakeUpdater({ check: async () => ({ current: "0.3.0", latest: "0.3.0", available: false, notes: [] }) });
+  const { api } = await start(t, { updater: u });
+  assert.deepEqual((await api("POST", "/api/update", {})).json, { upToDate: true, current: "0.3.0" });
+  assert.deepEqual(u.calls, []);
 });

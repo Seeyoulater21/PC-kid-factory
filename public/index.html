@@ -12,8 +12,11 @@
     <a class="brand" href="#/">ปิ่นโตเก่งขึ้นทุกวัน</a>
     <span id="fakeBadge" class="badge" hidden>โหมดทดลอง · ไม่เสียเงิน</span>
     <span class="grow"></span>
+    <span id="ver" class="muted"></span>
+    <a id="updLink" class="link" href="#" hidden>ตรวจหาอัปเดต</a>
     <a id="keyLink" class="link" href="#/key" hidden>เปลี่ยนคีย์</a>
   </header>
+  <div id="updBanner" class="upd" hidden></div>
   <main id="app"><p class="muted">กำลังเปิด…</p></main>
 
   <div id="busy" class="overlay" hidden>
@@ -26,7 +29,7 @@
 
   <div id="msg" class="overlay" hidden>
     <div class="card msg-card" role="alertdialog" aria-labelledby="msgText">
-      <div class="msg-icon">⚠</div>
+      <div id="msgIcon" class="msg-icon">⚠</div>
       <div id="msgText" class="msg-text"></div>
       <button id="msgOk" class="btn">ตกลง</button>
     </div>

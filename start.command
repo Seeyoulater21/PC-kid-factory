@@ -82,5 +82,6 @@ echo "READY http://127.0.0.1:$PORT/"
 echo "เปิดแล้ว ปิดหน้าต่างนี้เพื่อปิดโปรแกรม"
 wait "$SERVER_PID"
 # Only reached when the server stopped by itself (Ctrl-C / closing the window go through the trap above).
+if [ $? -eq 75 ]; then echo "กำลังอัปเดต โปรแกรมจะเปิดใหม่ในหน้าต่างใหม่ ปิดหน้าต่างนี้ได้เลย"; exit 0; fi
 echo
 read -r -p "โปรแกรมหยุดทำงาน กด Enter เพื่อปิด" _
