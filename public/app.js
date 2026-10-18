@@ -143,7 +143,7 @@ async function doUpdate() {
   busy("กำลังเปิดโปรแกรมใหม่…", "รอสักครู่");
   // the window may close and reopen by itself; if it stays, reload once any version answers again
   // (the new one, or the old one after a rollback: the reloaded page then says what happened)
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 80; i++) {
     await new Promise((res) => setTimeout(res, 3000));
     try {
       if ((await fetch("/api/version")).ok) break;

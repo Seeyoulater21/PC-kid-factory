@@ -1,6 +1,6 @@
 // Update helper, run detached from a copy outside the app folder (see update.mjs startSwap):
 // wait for the app to exit → app folder becomes "old", staged folder becomes the app → start the app →
-// if the new version does not answer within a minute, put the old folder back and start that instead.
+// if the new version does not answer within three minutes, put the old folder back and start that instead.
 // Self-contained on purpose: it must not import anything from the app folder it is replacing.
 import fs from "node:fs";
 import path from "node:path";
@@ -51,7 +51,8 @@ async function stopVersion(version) {
   for (let i = 0; i < 20 && alive(pid); i++) await sleep(500);
 }
 
-async function waitHealthy(version, seconds = 60) {
+// generous: right after an update, antivirus scans the new files and the first start can be slow
+async function waitHealthy(version, seconds = 180) {
   for (let i = 0; i < seconds / 2; i++) {
     if (await answers(version)) return true;
     await sleep(2000);
