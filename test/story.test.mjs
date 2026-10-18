@@ -250,6 +250,37 @@ test("story prompt sets the fun-story rules", () => {
   assert.match(p, /never/i);
 });
 
+test("story prompt spells out the child-safety rules kids could copy", () => {
+  const p = storyPrompt(idea(1), pageBudget(5), loadCast()).toLowerCase();
+  for (const phrase of [
+    "only eat food an adult gives",           // food from an adult / kitchen
+    "never eat leaves, flowers, berries, mushrooms or plants", // no foraging
+    "medicine or vitamins",                   // not candy
+    "gentle with animals",                    // no tail pulling / grabbing
+    "pulling tails",
+    "no climbing high places",
+    "roads, water, fire, stoves, knives or electric sockets",
+    "never go off alone or with strangers",
+    "an adult is nearby whenever food is picked, cut or cooked",
+  ]) assert.ok(p.includes(phrase), `story prompt missing: ${phrase}`);
+});
+
+test("ideas prompt carries the short safety rules", () => {
+  const p = ideasPrompt("กินผัก").toLowerCase();
+  for (const phrase of ["food an adult gives", "gentle with animals", "medicine", "strangers"]) {
+    assert.ok(p.includes(phrase), `ideas prompt missing: ${phrase}`);
+  }
+});
+
+test("validateStory flags a side character that is another cat", () => {
+  for (const look of ["a grey kitten with a bell", "an orange tabby cat", "two cats"]) {
+    const s = story(14, { sideCharacters: [{ id: "neighbor", look }] });
+    assert.ok(validateStory(s).some((m) => /neighbor/.test(m) && /cat/.test(m)), look);
+  }
+  const ok = story(14, { sideCharacters: [{ id: "bird", look: "a small blue bird, catching a seed" }] });
+  assert.deepEqual(validateStory(ok), []);
+});
+
 test("ideas prompt asks for 3 different angles", () => {
   const p = ideasPrompt("ล้างมือ");
   assert.match(p, /3|three/i);

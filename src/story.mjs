@@ -63,6 +63,7 @@ export function validateStory(s, { minutes = 5 } = {}) {
     if (mainIds.includes(id)) problems.push(`side character id "${id}" is a main character id; pick another id`);
     if (sideIds.includes(id)) problems.push(`side character id "${id}" is used twice`);
     for (const w of forbiddenIn(c.look)) problems.push(`side character "${id}" must not be a ${w}`);
+    if (/\b(cats?|kittens?|kitty|tabby)\b/i.test(c.look)) problems.push(`side character "${id}" must not be a cat; the only cat is Pinto's black cat`);
     sideIds.push(id);
   }
 

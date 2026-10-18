@@ -8,7 +8,7 @@ import { ideas, writeStory, validateStory, estimateSeconds } from "../src/story.
 
 const [topic, fileId, pick = "0", reuse] = process.argv.slice(2);
 if (!topic || !/^[\w-]+$/.test(fileId ?? "")) {
-  console.error("usage: node scripts/try-story.mjs <topic> <fileId> [ideaIndex]");
+  console.error("usage: node scripts/try-story.mjs <topic> <fileId> [ideaIndex] [reuseIdeasFromId]");
   process.exit(2);
 }
 const { key } = readConfig();
@@ -34,7 +34,7 @@ try {
   console.log("\nproblems:", validateStory(story));
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, `${fileId}.json`);
-  fs.writeFileSync(file, JSON.stringify({ topic, ideas: list, idea, estimateSeconds: Math.round(secs * 10) / 10, story }, null, 2));
+  fs.writeFileSync(file, JSON.stringify({ topic, ideas: list, idea, estimateSeconds: Math.round(secs * 10) / 10, story }, null, 2) + "\n");
   console.log("saved", file);
 } catch (e) {
   console.error("FAILED", e?.code ?? "", mask(e?.message ?? e));

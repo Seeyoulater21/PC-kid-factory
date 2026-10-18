@@ -89,7 +89,7 @@ For each idea give:
 - title: a short, catchy Thai title of 2 to 6 words.
 - pitch: one short Thai sentence that makes a child say "อยากฟัง!": show the fun problem or surprise, not the moral.
 
-Fun first, never a lecture. Gentle and safe for small children. If the topic is unsafe, scary or odd, quietly turn it into a gentle, kid-safe version of the same idea. The boy is never named.
+Fun first, never a lecture. Gentle and safe for small children, who copy what they watch: the characters only eat food an adult gives them (never plants they pick), are gentle with animals, never treat medicine as candy, never climb high or go near roads, water, fire or knives, and never go off alone or with strangers. If the topic is unsafe, scary or odd, quietly turn it into a gentle, kid-safe version of the same idea. The boy is never named.
 Return JSON only.`;
 }
 
@@ -143,7 +143,15 @@ PAGES
 - cast: ids of every character visible in the picture: ${mainIds}, or your side-character ids. Pinto is in almost every page.
 
 SAFETY
-- Gentle and safe for ages 4–10. If the idea is scary, unsafe, unclear or odd, quietly turn it into a gentle, kid-safe version of the same topic. Nothing dangerous that children could copy, no violence, no shaming anyone, no real brands, no real people. The pictures show children: nobody is ever undressed, in underwear or in the bath without clothes, and there are no underwear or toilet jokes.
+- Gentle and safe for ages 4–10. If the idea is scary, unsafe, unclear or odd, quietly turn it into a gentle, kid-safe version of the same topic. No violence, no shaming anyone, no real brands, no real people.
+- Children copy what they watch, so the characters never do anything unsafe, not even as a joke or a mistake:
+  - They only eat food an adult gives them or that comes washed from the kitchen or from an adult's basket. They never eat leaves, flowers, berries, mushrooms or plants they pick themselves, and never eat anything straight from the soil.
+  - No medicine or vitamins treated as candy or a game.
+  - Be gentle with animals: no pulling tails, no chasing to grab them, no squeezing, lifting roughly or dressing them up. The cat chases them or plays on its own; the children only pet it softly.
+  - No climbing high places (shelves, trees, furniture, windows). Nothing near roads, water, fire, stoves, knives or electric sockets.
+  - They never go off alone or with strangers.
+  - An adult is nearby whenever food is picked, cut or cooked.
+- The pictures show children: nobody is ever undressed, in underwear or in the bath without clothes, and there are no underwear or toilet jokes.
 
 ALSO
 - title: a short, catchy Thai title (it may improve on the idea's title).
