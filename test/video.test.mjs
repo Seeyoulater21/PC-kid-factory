@@ -8,7 +8,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { createEpisode, saveEpisode } from "../src/episodes.mjs";
 import { writeWav } from "../src/audio.mjs";
 import { addTrack, listTracks } from "../src/music.mjs";
-import { renderEpisode, safeTitle } from "../src/render/video.mjs";
+import { renderEpisode, safeTitle, chooseMusic } from "../src/render/video.mjs";
 
 const FFMPEG = process.env.KIDFACTORY_FFMPEG || "ffmpeg";
 const FFPROBE = process.env.KIDFACTORY_FFPROBE || "ffprobe";
@@ -30,8 +30,9 @@ const tone = (seconds, hz) => {
 const silentMp3 = (seconds) =>
   execFileSync(FFMPEG, ["-v", "error", "-f", "lavfi", "-i", `anullsrc=r=44100:cl=stereo`, "-t", String(seconds), "-c:a", "libmp3lame", "-b:a", "64k", "-f", "mp3", "-"]);
 
-function setup({ dirName = "kf-video-", title = "ปิ่นโต ทดสอบ" } = {}) {
+function setup(t, { dirName = "kf-video-", title = "ปิ่นโต ทดสอบ" } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "kf-video-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   process.env.KIDFACTORY_DATA = path.join(root, dirName);
   const story = { ...sample.story, title, pages: sample.story.pages.slice(0, 2) };
   const ep = createEpisode(sample.idea, story);
@@ -85,20 +86,20 @@ test("safeTitle keeps Thai and spaces, drops illegal characters", () => {
   assert.equal(safeTitle("จบแล้ว..."), "จบแล้ว");
 });
 
-test("render refuses stale voice", async () => {
-  const { ep } = setup();
+test("render refuses stale voice", async (t) => {
+  const { ep } = setup(t);
   ep.story.pages[1].narration = "ข้อความใหม่";
   await assert.rejects(renderEpisode(ep, SIZE), { message: "เสียงหน้า 2 ยังไม่อัปเดต" });
 });
 
-test("render refuses an unfinished image", async () => {
-  const { ep } = setup();
+test("render refuses an unfinished image", async (t) => {
+  const { ep } = setup(t);
   ep.story.pages[0].image = { state: "error", error: "x" };
   await assert.rejects(renderEpisode(ep, SIZE), { message: "ภาพหน้า 1 ยังไม่เสร็จ" });
 });
 
-test("renders a tiny episode", async () => {
-  const { ep, dir } = setup();
+test("renders a tiny episode", async (t) => {
+  const { ep, dir } = setup(t);
   const seen = [];
   const file = await renderEpisode(ep, { ...SIZE, onProgress: (f) => seen.push(f) });
   assert.equal(file, path.join(dir, "out", "ปิ่นโต ทดสอบ.mp4"));
@@ -112,9 +113,61 @@ test("renders a tiny episode", async () => {
   assert.deepEqual(fs.readdirSync(path.join(dir, "out")), ["ปิ่นโต ทดสอบ.mp4"], "no temp files left behind");
 });
 
-test("renders when paths contain spaces and Thai", async () => {
-  const { ep, dir } = setup({ dirName: "คลัง วิดีโอ", title: "ปิ่นโต ล้างมือ" });
+test("renders when paths contain spaces and Thai", async (t) => {
+  const { ep, dir } = setup(t, { dirName: "คลัง วิดีโอ", title: "ปิ่นโต ล้างมือ" });
   const file = await renderEpisode(ep, SIZE);
   assert.equal(file, path.join(dir, "out", "ปิ่นโต ล้างมือ.mp4"));
   checkVideo(file);
+});
+
+const noThaiDetail = (e) => {
+  assert.ok(!/ffmpeg|Error|\n/i.test(e.message), `message carries no tool output: ${e.message}`);
+  return true;
+};
+
+test("a broken page image fails fast with a Thai message and leaves nothing in out/", async (t) => {
+  const { ep, dir } = setup(t);
+  fs.writeFileSync(path.join(dir, "img/p01.jpg"), Buffer.from("not really a jpeg"));
+  const t0 = Date.now();
+  await assert.rejects(renderEpisode(ep, SIZE), (e) => e.message === "ภาพหน้า 1 เสียหาย ลองกด ↻ ภาพใหม่" && noThaiDetail(e));
+  assert.ok(Date.now() - t0 < 3000, "rejects promptly");
+  assert.deepEqual(fs.readdirSync(path.join(dir, "out")), []);
+});
+
+test("ffmpeg failure rejects with the generic Thai message; detail kept aside", async (t) => {
+  const { ep, dir } = setup(t);
+  const before = process.env.KIDFACTORY_FFMPEG;
+  process.env.KIDFACTORY_FFMPEG = "/usr/bin/false";
+  t.after(() => { if (before === undefined) delete process.env.KIDFACTORY_FFMPEG; else process.env.KIDFACTORY_FFMPEG = before; });
+  await assert.rejects(renderEpisode(ep, SIZE), (e) => e.message === "สร้างวิดีโอไม่สำเร็จ" && typeof e.detail === "string" && noThaiDetail(e));
+  assert.deepEqual(fs.readdirSync(path.join(dir, "out")), []);
+});
+
+test("a 0-byte intro clip rejects with the generic Thai message", async (t) => {
+  const { ep, dir } = setup(t);
+  const empty = path.join(dir, "empty intro.mp4");
+  fs.writeFileSync(empty, "");
+  await assert.rejects(renderEpisode(ep, { ...SIZE, clips: { intro: empty } }), (e) => e.message === "สร้างวิดีโอไม่สำเร็จ" && noThaiDetail(e));
+  assert.deepEqual(fs.readdirSync(path.join(dir, "out")), []);
+});
+
+test("chooseMusic: the episode's track, else least recently used of the mood", (t) => {
+  const { ep } = setup(t);
+  assert.equal(chooseMusic(ep).id, "test-silence");
+  const other = chooseMusic({ ...ep, musicId: "gone", story: { ...ep.story, mood: "bright" } });
+  assert.equal(other.id, "seed-bright");
+  assert.ok(other.file.endsWith(path.join("music", "seed-bright.mp3")));
+});
+
+test("a page that breaks mid-render stops ffmpeg and fails with a Thai message", async (t) => {
+  const { ep, dir } = setup(t);
+  let calls = 0;
+  const onProgress = () => {
+    // 2nd call = first frame already piped; page 2 is decoded again only at the turn
+    if (++calls === 2) fs.writeFileSync(path.join(dir, "img/p02.jpg"), Buffer.from("broken"));
+  };
+  const t0 = Date.now();
+  await assert.rejects(renderEpisode(ep, { ...SIZE, onProgress }), (e) => e.message === "ภาพหน้า 2 เสียหาย ลองกด ↻ ภาพใหม่" && noThaiDetail(e));
+  assert.ok(Date.now() - t0 < 10000, "does not hang");
+  assert.deepEqual(fs.readdirSync(path.join(dir, "out")), []);
 });

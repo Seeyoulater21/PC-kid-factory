@@ -75,7 +75,8 @@ function checkReady(ep, epPath) {
   if (!pages.length) throw new Error("ยังไม่มีหน้าหนังสือ");
 }
 
-function chooseMusic(ep) {
+/** Track the export will use: ep.musicId if it still exists, else the least recently used of the mood. */
+export function chooseMusic(ep) {
   const tracks = listTracks();
   const t = (ep.musicId && tracks.find((x) => x.id === ep.musicId)) || pickTrack(ep.story.mood);
   return t ? { id: t.id, file: path.join(dataDir(), "music", `${t.id}.mp3`) } : null;
@@ -93,13 +94,13 @@ function audioGraph({ intro, outro, narration, music, mainSec }) {
   const outroIdx = music ? 3 : 2;
   const fit = (sec) => `apad=whole_dur=${sec},atrim=0:${sec},asetpts=N/SR/TB`;
   const f = [
-    `[0:a]${AF},${fit(D)}[ia]`,
-    `[1:a]${AF},${fit(mainSec)}[na]`,
-    `[${outroIdx}:a]${AF},${fit(D)}[oa]`,
+    `[0:a]asetpts=PTS-STARTPTS,${AF},${fit(D)}[ia]`,
+    `[1:a]asetpts=PTS-STARTPTS,${AF},${fit(mainSec)}[na]`,
+    `[${outroIdx}:a]asetpts=PTS-STARTPTS,${AF},${fit(D)}[oa]`,
   ];
   if (music) {
     const outAt = Math.max(0, mainSec - 3);
-    f.push(`[2:a]${AF},atrim=0:${mainSec},asetpts=N/SR/TB,volume=${music.gain.toFixed(2)}dB,afade=t=in:st=0:d=2,afade=t=out:st=${outAt}:d=3[ma]`);
+    f.push(`[2:a]asetpts=PTS-STARTPTS,${AF},atrim=0:${mainSec},asetpts=N/SR/TB,volume=${music.gain.toFixed(2)}dB,afade=t=in:st=0:d=2,afade=t=out:st=${outAt}:d=3[ma]`);
     f.push(`[na][ma]amix=inputs=2:duration=first:normalize=0[mix]`);
   } else {
     f.push(`[na]anull[mix]`);
@@ -167,7 +168,7 @@ const muxArgs = ({ video, audio, out }) => [
   "-movflags", "+faststart", "-f", "mp4", out,
 ];
 
-async function encode({ args, frames, draw, onFrame }) {
+async function encode({ args, frames, draw, onFrame, stopIf }) {
   const ff = spawn(FFMPEG(), args, { stdio: ["pipe", "ignore", "pipe"] });
   let err = "";
   ff.stderr.on("data", (d) => { err = (err + d).slice(-20000); });
@@ -177,15 +178,27 @@ async function encode({ args, frames, draw, onFrame }) {
     ff.on("error", (e) => { exited = true; err += `\n${e.message}`; resolve(-1); });
     ff.on("close", (code) => { exited = true; resolve(code); });
   });
-  for (let f = 0; f < frames && !exited; f++) {
-    const buf = await draw(f);
-    if (!ff.stdin.write(buf)) await Promise.race([once(ff.stdin, "drain").catch(() => {}), done]);
-    onFrame(f);
+  try {
+    for (let f = 0; f < frames && !exited; f++) {
+      stopIf?.();
+      const buf = await draw(f);
+      if (!ff.stdin.write(buf)) await Promise.race([once(ff.stdin, "drain").catch(() => {}), done]);
+      onFrame(f);
+    }
+  } catch (e) {
+    // never leave ffmpeg waiting on a pipe that will not be fed again
+    ff.kill("SIGKILL");
+    await done;
+    throw thaiError(e, err);
   }
   ff.stdin.end();
   const code = await done;
   if (code !== 0) throw fail(err);
 }
+
+// Thai messages pass through; anything else becomes the generic Thai failure (raw text in .detail).
+const thaiError = (e, extra = "") =>
+  e?.message && /[\u0E00-\u0E7F]/.test(e.message) ? e : fail(`${e?.message || e}\n${extra}`);
 
 /**
  * Renders the episode to <episode>/out/<title>.mp4 and returns that path.
@@ -210,7 +223,16 @@ export async function renderEpisode(ep, { onProgress, width = 1920, height = 108
     if (!fs.existsSync(file)) throw new Error(`ไม่พบคลิป ${name}.mp4`);
     return { file, audio: await hasAudio(file) };
   };
-  const [intro, outro] = await Promise.all([clip("intro"), clip("outro")]);
+  // decode every page once up front: a broken file fails fast, with the page named, before ffmpeg starts
+  const decode = async (n) => {
+    try {
+      return await loadImage(fs.readFileSync(epPath(pages[n - 1].image.file)));
+    } catch (e) {
+      throw Object.assign(new Error(`ภาพหน้า ${n} เสียหาย ลองกด ↻ ภาพใหม่`), { detail: String(e?.message || e) });
+    }
+  };
+  for (let n = 1; n <= pages.length; n++) await decode(n);
+  const [intro, outro] = await Promise.all([clip("intro"), clip("outro")]).catch((e) => { throw thaiError(e); });
   const music = chooseMusic(ep);
 
   const outDir = epPath("out");
@@ -222,7 +244,8 @@ export async function renderEpisode(ep, { onProgress, width = 1920, height = 108
   try {
     const parts = timeline.filter((s) => s.kind === "hold").map((s) => ({ wav: voices[s.page - 1], at: s.voiceAt }));
     audioJob = buildAudio({ work, intro, outro, narrationWav: narrationTrack(parts, mainSec), music, mainSec });
-    audioJob.catch(() => {}); // awaited below; avoid an unhandled rejection while frames render
+    let audioFailed = null;
+    audioJob.catch((e) => { audioFailed = e; }); // stops the frame loop early; awaited again below
     const video = path.join(work, "video.mp4");
 
     const book = createBook({ width: W, height: H });
@@ -231,7 +254,7 @@ export async function renderEpisode(ep, { onProgress, width = 1920, height = 108
     // each page decoded once and reused (book.mjs caches its scaled copy by object identity)
     const images = new Map();
     const image = async (n) => {
-      if (!images.has(n)) images.set(n, await loadImage(fs.readFileSync(epPath(pages[n - 1].image.file))));
+      if (!images.has(n)) images.set(n, await decode(n));
       return images.get(n);
     };
     const keepOnly = (...ns) => { for (const k of images.keys()) if (!ns.includes(k)) images.delete(k); };
@@ -251,10 +274,13 @@ export async function renderEpisode(ep, { onProgress, width = 1920, height = 108
         return canvas.data();
       },
       onFrame: (f) => { if (f % 15 === 0) progress((0.97 * f) / frames); },
+      stopIf: () => { if (audioFailed) throw audioFailed; },
     });
     progress(0.97);
     await run(FFMPEG(), muxArgs({ video, audio: await audioJob, out: part }));
     fs.renameSync(part, outFile);
+  } catch (e) {
+    throw thaiError(e);
   } finally {
     await audioJob?.catch(() => {}); // never delete the work folder under a running audio job
     fs.rmSync(work, { recursive: true, force: true });
