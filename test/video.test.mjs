@@ -76,7 +76,7 @@ function checkVideo(file) {
   assert.equal(Number(a.sample_rate), 48000);
   assert.equal(a.channels, 2);
   const d = Number(info.format.duration);
-  assert.ok(Math.abs(d - 16.3) <= 0.2, `duration ${d} ≈ 16.3`);
+  assert.ok(Math.abs(d - 26.3) <= 0.2, `duration ${d} ≈ 26.3`); // 5 s intro + 6.3 s book + 15 s outro
 }
 
 test("outputName: 2-digit episode number, then the safe title; no number, no prefix", () => {

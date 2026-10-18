@@ -5,7 +5,7 @@ import { TIMING, buildTimeline, timelineSeconds, sampleAt } from "../src/timelin
 const close = (a, b, msg) => assert.ok(Math.abs(a - b) < 1e-9, `${msg}: ${a} vs ${b}`);
 
 test("TIMING has the agreed values", () => {
-  assert.deepEqual(TIMING, { lead: 0.4, tail: 1.0, turn: 1.5, fps: 30, zoomEnd: 1.06, introOutro: 5 });
+  assert.deepEqual(TIMING, { lead: 0.4, tail: 1.0, turn: 1.5, fps: 30, zoomEnd: 1.06, intro: 5, outro: 15 });
 });
 
 test("buildTimeline for voices [3, 4]", () => {

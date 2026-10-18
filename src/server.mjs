@@ -149,7 +149,7 @@ export function createServer(opts = {}) {
     const out = {
       ...ep,
       staleVoices: stale,
-      seconds: book + 2 * TIMING.introOutro,
+      seconds: book + TIMING.intro + TIMING.outro,
       lengthReal: real,
       status: episodeStatus(ep),
       cost: estimateCost(ep),

@@ -91,21 +91,20 @@ export function chooseMusic(ep) {
   return t ? { id: t.id, file: path.join(dataDir(), "music", `${t.id}.mp3`) } : null;
 }
 
-// Inputs + filter graph producing [full]: 5 s intro audio, main mix (mainSec), 5 s outro audio, 48 kHz stereo.
+// Inputs + filter graph producing [full]: intro audio, main mix (mainSec), outro audio (TIMING lengths), 48 kHz stereo.
 function audioGraph({ intro, outro, narration, music, mainSec }) {
-  const D = TIMING.introOutro;
   const args = [];
   const silence = (sec) => ["-f", "lavfi", "-t", String(sec), "-i", "anullsrc=r=48000:cl=stereo"];
-  const clipIn = (c) => (c.audio ? ["-i", c.file] : silence(D));
-  args.push(...clipIn(intro), "-i", narration);
+  const clipIn = (c, sec) => (c.audio ? ["-i", c.file] : silence(sec));
+  args.push(...clipIn(intro, TIMING.intro), "-i", narration);
   if (music) args.push("-stream_loop", "-1", "-i", music.file);
-  args.push(...clipIn(outro));
+  args.push(...clipIn(outro, TIMING.outro));
   const outroIdx = music ? 3 : 2;
   const fit = (sec) => `apad=whole_dur=${sec},atrim=0:${sec},asetpts=N/SR/TB`;
   const f = [
-    `[0:a]asetpts=PTS-STARTPTS,${AF},${fit(D)}[ia]`,
+    `[0:a]asetpts=PTS-STARTPTS,${AF},${fit(TIMING.intro)}[ia]`,
     `[1:a]asetpts=PTS-STARTPTS,${AF},${fit(mainSec)}[na]`,
-    `[${outroIdx}:a]asetpts=PTS-STARTPTS,${AF},${fit(D)}[oa]`,
+    `[${outroIdx}:a]asetpts=PTS-STARTPTS,${AF},${fit(TIMING.outro)}[oa]`,
   ];
   if (music) {
     const outAt = Math.max(0, mainSec - 3);
@@ -147,15 +146,15 @@ async function buildAudio({ work, intro, outro, narrationWav, music, mainSec }) 
 
 // One ffmpeg: [intro][piped frames][outro] → H.264 (video only; audio is muxed afterwards).
 function encoderArgs({ W, H, intro, outro, out }) {
-  const D = TIMING.introOutro, fps = TIMING.fps;
-  const clip = (i, label) =>
+  const fps = TIMING.fps;
+  const clip = (i, label, D) =>
     `[${i}:v]setpts=PTS-STARTPTS,fps=${fps},scale=${W}:${H}:force_original_aspect_ratio=decrease:force_divisible_by=2,` +
     `pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,format=yuv420p,` +
     `tpad=stop_mode=clone:stop_duration=${D},trim=duration=${D},setpts=PTS-STARTPTS[${label}]`;
   const filter = [
-    clip(0, "iv"),
+    clip(0, "iv", TIMING.intro),
     `[1:v]format=yuv420p,setsar=1[mv]`,
-    clip(2, "ov"),
+    clip(2, "ov", TIMING.outro),
     `[iv][mv][ov]concat=n=3:v=1:a=0[v]`,
   ].join(";");
   return [

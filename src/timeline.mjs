@@ -1,5 +1,5 @@
 // Book timeline: hold page 1 → turn → hold page 2 → ... (intro/outro are added by the video export).
-export const TIMING = { lead: 0.4, tail: 1.0, turn: 1.5, fps: 30, zoomEnd: 1.06, introOutro: 5 };
+export const TIMING = { lead: 0.4, tail: 1.0, turn: 1.5, fps: 30, zoomEnd: 1.06, intro: 5, outro: 15 };
 
 const ms = (x) => Math.round(x * 1000) / 1000; // keeps 0.4 + 3 + 1 from drifting
 
