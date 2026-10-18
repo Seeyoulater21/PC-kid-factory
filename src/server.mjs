@@ -180,6 +180,7 @@ export function createServer(opts = {}) {
   }
 
   function startPagesJob(kind, ep, pages) {
+    if (updating) throw new HttpError(409, T.busy);
     if (running(ep.id, kind)) throw new HttpError(409, T.busy);
     if (running(ep.id, "render")) throw new HttpError(409, T.busy);
     const g = gemini();
@@ -213,6 +214,7 @@ export function createServer(opts = {}) {
   }
 
   function startRender(ep, musicId) {
+    if (updating) throw new HttpError(409, T.busy);
     if (running(ep.id, "render")) throw new HttpError(409, T.busy);
     if (running(ep.id, "images") || running(ep.id, "voices")) throw new HttpError(409, T.waitPages);
     if (musicId !== undefined && musicId !== null && !listTracks().some((t) => t.id === musicId)) {
@@ -241,7 +243,7 @@ export function createServer(opts = {}) {
       version: currentVersion(),
       updated: resultShown ? null : ((resultShown = true), updater.result()), // last update's outcome, shown once
     })],
-    ["GET", /^\/api\/version$/, () => ({ version: currentVersion() })], // health check of the update helper
+    ["GET", /^\/api\/version$/, () => ({ version: currentVersion(), pid: process.pid })], // health check of the update helper
     ["GET", /^\/api\/update$/, async () => {
       const { current, latest, available, notes } = await updater.check();
       return { current, latest, available, notes, canUpdate: updater.canUpdate() };
@@ -249,10 +251,13 @@ export function createServer(opts = {}) {
     ["POST", /^\/api\/update$/, async () => {
       if (updating || [...jobs.values()].some((j) => Object.values(j).some((x) => x?.running))) throw new HttpError(409, T.busyUpdate);
       if (!updater.canUpdate()) throw new HttpError(400, T.devCopy);
-      updating = true;
+      updating = true; // from here on no new job may start (startPagesJob / startRender)
       try {
         const r = await updater.check();
-        if (!r.available) return { upToDate: true, current: r.current };
+        if (!r.available) {
+          updating = false;
+          return { upToDate: true, current: r.current };
+        }
         const staged = await updater.stage(r.manifest);
         updater.swap({ staged, version: r.latest });
         updater.exit();

@@ -381,6 +381,9 @@ test("POST /api/update stages, hands over to the swap helper and exits", async (
   assert.deepEqual(r.json, { restarting: true, version: "0.3.0" });
   assert.deepEqual(u.calls, [["stage", "0.3.0"], ["swap", "/staged", "0.3.0"], ["exit"]]);
   assert.equal((await api("POST", "/api/update", {})).status, 409); // already updating
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  assert.equal((await api("POST", `/api/episodes/${id}/voices`, {})).status, 409); // no new jobs while updating
+  assert.equal((await api("POST", `/api/episodes/${id}/render`, {})).status, 409);
 });
 
 test("POST /api/update refuses while a job runs, and on a copy that cannot update itself", async (t) => {

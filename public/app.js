@@ -123,10 +123,10 @@ async function checkUpdate(silent) {
     </div>
     ${u.notes.length ? `<ul>${u.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}`;
   banner.hidden = false;
-  $("#updNow").onclick = () => doUpdate(u.latest);
+  $("#updNow").onclick = doUpdate;
 }
 
-async function doUpdate(version) {
+async function doUpdate() {
   busy("กำลังอัปเดต…", "ดาวน์โหลดแล้วโปรแกรมจะเปิดใหม่เอง");
   let r;
   try {
@@ -141,14 +141,15 @@ async function doUpdate(version) {
     return showError(new Error(`เป็นเวอร์ชันล่าสุดแล้ว (${r.current})`), "✓");
   }
   busy("กำลังเปิดโปรแกรมใหม่…", "รอสักครู่");
-  // the window may close and reopen by itself; if it stays, reload once the new version answers
-  for (;;) {
+  // the window may close and reopen by itself; if it stays, reload once any version answers again
+  // (the new one, or the old one after a rollback: the reloaded page then says what happened)
+  for (let i = 0; i < 60; i++) {
     await new Promise((res) => setTimeout(res, 3000));
     try {
-      const s = await (await fetch("/api/state")).json();
-      if (s.version === version) return location.reload();
+      if ((await fetch("/api/version")).ok) break;
     } catch {}
   }
+  location.reload();
 }
 $("#updLink").onclick = (e) => { e.preventDefault(); checkUpdate(false); };
 

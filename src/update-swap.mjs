@@ -15,7 +15,7 @@ function alive(pid) {
 }
 
 // Windows keeps files locked for a moment after a process ends (and antivirus may scan new files).
-async function renameRetry(from, to, tries = 20) {
+async function renameRetry(from, to, tries = 40) {
   for (let i = 1; ; i++) {
     try { return fs.renameSync(from, to); } catch (e) {
       if (i >= tries || !["EPERM", "EACCES", "EBUSY"].includes(e.code)) throw e;
@@ -30,14 +30,25 @@ function startApp(cmd) {
   p.unref();
 }
 
-async function answers(version) {
+// pid of a running Kid Factory of this version, or 0
+async function answering(version) {
   for (const port of PORTS) {
     try {
       const r = await fetch(`http://127.0.0.1:${port}/api/version`, { signal: AbortSignal.timeout(1500) });
-      if (r.ok && (await r.json()).version === version) return true;
+      const j = r.ok ? await r.json() : null;
+      if (j?.version === version) return j.pid || -1;
     } catch {}
   }
-  return false;
+  return 0;
+}
+const answers = async (version) => (await answering(version)) !== 0;
+
+// A late or hung new version holds the folder open (Windows) or a port: stop it before moving folders back.
+async function stopVersion(version) {
+  const pid = await answering(version);
+  if (pid <= 0) return;
+  try { process.kill(pid); } catch {}
+  for (let i = 0; i < 20 && alive(pid); i++) await sleep(500);
 }
 
 async function waitHealthy(version, seconds = 60) {
@@ -52,21 +63,22 @@ async function waitHealthy(version, seconds = 60) {
  * job: { pid, root, staged, old, version, from, relaunch: [cmd, ...args], result }
  * deps (tests): start(cmd), healthy(version) → bool, exitWait seconds
  */
-export async function swap(job, { start = startApp, healthy = waitHealthy, exitWait = 30 } = {}) {
+export async function swap(job, { start = startApp, healthy = waitHealthy, stop = stopVersion, exitWait = 30, tries } = {}) {
+  const move = (from, to) => renameRetry(from, to, tries);
   const write = (r) => fs.writeFileSync(job.result, JSON.stringify({ ...r, from: job.from, to: job.version, at: new Date().toISOString() }));
   for (let i = 0; i < exitWait * 2 && alive(job.pid); i++) await sleep(500);
 
   try {
     fs.rmSync(job.old, { recursive: true, force: true });
-    await renameRetry(job.root, job.old);
+    await move(job.root, job.old);
   } catch {
     write({ ok: false });
     return start(job.relaunch); // nothing moved yet: the old version simply starts again
   }
   try {
-    await renameRetry(job.staged, job.root);
+    await move(job.staged, job.root);
   } catch {
-    await renameRetry(job.old, job.root);
+    await move(job.old, job.root); // throws only if the folder cannot be put back; KidFactory.exe also restores it on start
     write({ ok: false });
     return start(job.relaunch);
   }
@@ -77,11 +89,13 @@ export async function swap(job, { start = startApp, healthy = waitHealthy, exitW
 
   // roll back: the new version did not come up
   const failed = `${job.staged}-failed`;
+  await stop(job.version);
   try {
     fs.rmSync(failed, { recursive: true, force: true });
-    await renameRetry(job.root, failed);
-    await renameRetry(job.old, job.root);
+    await move(job.root, failed);
+    await move(job.old, job.root);
   } catch {}
+  if (!fs.existsSync(job.root) && fs.existsSync(job.old)) await move(job.old, job.root).catch(() => {});
   write({ ok: false });
   start(job.relaunch);
 }

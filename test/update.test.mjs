@@ -135,11 +135,22 @@ test("swap: new version in place, old kept, app started, result ok", async (t) =
   assert.equal(takeResult(dir), null); // shown once
 });
 
-test("swap: rolls back when the new version does not come up", async (t) => {
+test("swap: rolls back when the new version does not come up, stopping it first", async (t) => {
   const { job, ver, dir } = swapJob(t);
-  const started = [];
-  await swap(job, { start: (c) => started.push(c), healthy: async () => false, exitWait: 0 });
+  const started = [], stopped = [];
+  await swap(job, { start: (c) => started.push(c), healthy: async () => false, stop: async (v) => stopped.push(v), exitWait: 0 });
   assert.equal(ver(), "0.2.0");
+  assert.deepEqual(stopped, ["0.3.0"]);
   assert.equal(started.length, 2); // new version, then the old one again
+  assert.equal(takeResult(dir).ok, false);
+});
+
+test("swap: if the staged folder cannot be moved in, the old one is put back and started", async (t) => {
+  const { job, ver, dir } = swapJob(t);
+  fs.rmSync(job.staged, { recursive: true });
+  const started = [];
+  await swap(job, { start: (c) => started.push(c), healthy: async () => true, exitWait: 0, tries: 1 });
+  assert.equal(ver(), "0.2.0");
+  assert.deepEqual(started, [["go"]]);
   assert.equal(takeResult(dir).ok, false);
 });
