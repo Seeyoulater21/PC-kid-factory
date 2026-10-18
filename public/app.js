@@ -91,7 +91,7 @@ function keyScreen() {
   app.innerHTML = `
     <div class="card" style="max-width:520px;margin:30px auto">
       <div class="step">${first ? "เปิดครั้งแรก" : "เปลี่ยนคีย์"}</div>
-      <h1>${first ? "ยินดีต้อนรับสู่ Kid Factory" : "เปลี่ยนคีย์ Gemini"}</h1>
+      <h1>${first ? "ยินดีต้อนรับสู่ ปิ่นโตเก่งขึ้นทุกวัน" : "เปลี่ยนคีย์ Gemini"}</h1>
       <p class="muted">วางคีย์ Gemini ครั้งเดียว โปรแกรมจะจำไว้ในเครื่องนี้เท่านั้น<br>
       ขอคีย์ได้ที่ Google AI Studio → “Get API key”</p>
       <input id="key" type="password" placeholder="วางคีย์ Gemini ที่นี่" autocomplete="off" spellcheck="false">
@@ -508,10 +508,10 @@ async function videoShell() {
   try {
     tracks = (await api("GET", "/api/music")).tracks;
   } catch (e) { tracks = []; showError(e); }
-  const sel = $("#music");
-  if (!sel) return;
+  const musicSel = $("#music");
+  if (!musicSel) return;
   const pick = ep.musicId && tracks.some((t) => t.id === ep.musicId) ? ep.musicId : ep.suggestedMusicId;
-  sel.innerHTML = tracks.length
+  musicSel.innerHTML = tracks.length
     ? tracks.map((t) => `<option value="${esc(t.id)}" ${t.id === pick ? "selected" : ""}>${esc(trackName(t))}${t.mood === ep.story.mood ? " · เข้ากับเรื่อง" : ""}</option>`).join("")
     : `<option value="">ไม่มีเพลง (วิดีโอจะมีแต่เสียงเล่า)</option>`;
   videoUpdate();

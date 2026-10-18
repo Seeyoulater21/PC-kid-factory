@@ -318,3 +318,29 @@ test("delete removes the episode folder; refused while a job runs", async (t) =>
   assert.equal((await api("DELETE", "/api/episodes/..")).status, 404);
   assert.equal((await api("DELETE", `/api/episodes/${id}`)).status, 404);
 });
+
+test("narration edited while its voice records: the old audio stays stale", async (t) => {
+  const { api } = await start(t, { gemini: fakeGemini({ slow: 300 }) });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  await api("POST", `/api/episodes/${id}/voices`, { pages: [1] });
+  await new Promise((r) => setTimeout(r, 50)); // page 1 is now recording
+  assert.equal((await api("PATCH", `/api/episodes/${id}/pages/1`, { narration: "ปิ่นโตยิ้มกว้าง" })).status, 200);
+  await waitJob(api, id, "voices");
+  const ep = (await api("GET", `/api/episodes/${id}`)).json;
+  assert.equal(ep.story.pages[0].voice.state, "done");
+  assert.ok(ep.staleVoices.includes(1));
+});
+
+test("job and page errors never carry the key", async (t) => {
+  const g = fakeGemini();
+  g.image = async () => { throw new GeminiError("refused", "x", `ภาพไม่ได้ ${KEY}`); };
+  const { api } = await start(t, { gemini: g });
+  await api("POST", "/api/key", { key: KEY });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  await api("POST", `/api/episodes/${id}/images`, { pages: [1] });
+  const job = await waitJob(api, id, "images");
+  assert.match(job.error, /ภาพไม่ได้/);
+  const jobText = (await api("GET", `/api/episodes/${id}/job`)).text;
+  const epText = (await api("GET", `/api/episodes/${id}`)).text;
+  assert.ok(!jobText.includes(KEY) && !epText.includes(KEY));
+});

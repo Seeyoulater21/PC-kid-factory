@@ -3,7 +3,10 @@ import os from "node:os";
 import path from "node:path";
 
 export function dataDir() {
-  return process.env.KIDFACTORY_DATA || path.join(os.homedir(), "KidFactory");
+  if (process.env.KIDFACTORY_DATA) return process.env.KIDFACTORY_DATA;
+  const dir = path.join(os.homedir(), "Documents", "KidFactory");
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 const configPath = () => path.join(dataDir(), "config.json");

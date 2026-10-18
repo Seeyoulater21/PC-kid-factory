@@ -33,7 +33,13 @@ test("saveKey keeps other config fields and trims the key", () => {
   assert.deepEqual(readConfig(), { other: 1, key: "k" });
 });
 
-test("default dir is ~/KidFactory", () => {
+test("default dir is <home>/Documents/KidFactory, created if missing", (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "kf-home-"));
+  const oldHome = process.env.HOME;
+  t.after(() => { process.env.HOME = oldHome; fs.rmSync(home, { recursive: true, force: true }); });
+  process.env.HOME = home; // os.homedir() follows HOME on macOS/Linux
   delete process.env.KIDFACTORY_DATA;
-  assert.equal(dataDir(), path.join(os.homedir(), "KidFactory"));
+  const want = path.join(home, "Documents", "KidFactory");
+  assert.equal(dataDir(), want);
+  assert.ok(fs.statSync(want).isDirectory());
 });

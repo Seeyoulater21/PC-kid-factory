@@ -192,9 +192,9 @@ export function createServer(opts = {}) {
     fn(ep, g, { pages: chosen, onChange })
       .then(() => {
         const failed = chosen.filter((n) => ep.story.pages[n - 1][key]?.state === "error");
-        if (failed.length) job.error = T.someFailed(failed, ep.story.pages[failed[0] - 1][key].error || T.generic);
+        if (failed.length) job.error = scrub(T.someFailed(failed, ep.story.pages[failed[0] - 1][key].error || T.generic));
       })
-      .catch((e) => { job.error = thaiOf(e); })
+      .catch((e) => { job.error = scrub(thaiOf(e)); })
       .finally(() => {
         job.running = false;
         job.progress = 1;
@@ -219,7 +219,7 @@ export function createServer(opts = {}) {
         job.file = rel;
         job.progress = 1;
       })
-      .catch((e) => { job.error = thaiOf(e); })
+      .catch((e) => { job.error = scrub(thaiOf(e)); })
       .finally(() => { job.running = false; });
   }
 
@@ -330,7 +330,7 @@ export function createServer(opts = {}) {
       } catch (e) {
         const status = e instanceof HttpError ? e.status : 500;
         if (status === 500) console.error("[api]", method, pathname, scrub(e?.message ?? e).slice(0, 300));
-        return sendJson(res, status, { error: scrub(thaiOf(e)) });
+        return sendJson(res, status, { error: thaiOf(e) });
       }
     }
     return sendJson(res, 404, { error: T.generic });
@@ -378,7 +378,7 @@ function readJson(req) {
 }
 
 function sendJson(res, status, obj) {
-  const body = JSON.stringify(obj);
+  const body = scrub(JSON.stringify(obj)); // job and page errors included: the key never leaves
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "content-length": Buffer.byteLength(body), "cache-control": "no-store" });
   res.end(body);
 }

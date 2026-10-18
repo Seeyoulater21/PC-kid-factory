@@ -88,7 +88,11 @@ export async function makeVoices(ep, gemini, { pages, concurrency = 3, onChange 
   return runPages(ep, nums, concurrency, (n) =>
     step(
       ep, n, "voice", onChange,
-      (page) => gemini.speech(page.narration, { voice: cast.voice, style: cast.voiceStyle }).then((wav) => ({ wav, text: page.narration })),
+      (page) => {
+        // the text being spoken, captured now: the narration may be edited while this call runs
+        const text = page.narration;
+        return gemini.speech(text, { voice: cast.voice, style: cast.voiceStyle }).then((wav) => ({ wav, text }));
+      },
       ({ wav, text }) => {
         const file = `voice/p${pad(n)}.wav`;
         fs.mkdirSync(path.dirname(epFile(ep, file)), { recursive: true });

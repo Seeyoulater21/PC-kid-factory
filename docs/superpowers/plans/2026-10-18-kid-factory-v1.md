@@ -68,7 +68,7 @@ scripts/make-placeholder-clips.mjs
 test/*.test.mjs
 ```
 
-Data folder: `<home>/KidFactory/` (override with env `KIDFACTORY_DATA` for tests) containing `config.json`, `saved-ideas.json`, `episodes/<id>/episode.json` + `img/`, `voice/`, `out/`, and `music/<trackId>.mp3` + `.json`.
+Data folder: `<home>/Documents/KidFactory/` (created if missing) (override with env `KIDFACTORY_DATA` for tests) containing `config.json`, `saved-ideas.json`, `episodes/<id>/episode.json` + `img/`, `voice/`, `out/`, and `music/<trackId>.mp3` + `.json`.
 
 ---
 
