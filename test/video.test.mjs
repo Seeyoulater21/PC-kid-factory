@@ -92,6 +92,13 @@ test("safeTitle keeps Thai and spaces, drops illegal characters", () => {
   assert.equal(safeTitle("จบแล้ว..."), "จบแล้ว");
 });
 
+test("safeTitle never returns a name Windows reserves for devices", () => {
+  assert.equal(safeTitle("CON"), "_CON");
+  assert.equal(safeTitle("nul.txt"), "_nul.txt");
+  assert.equal(safeTitle("com1"), "_com1");
+  assert.equal(safeTitle("Console"), "Console");
+});
+
 test("render refuses stale voice", async (t) => {
   const { ep } = setup(t);
   ep.story.pages[1].narration = "ข้อความใหม่";
@@ -143,7 +150,7 @@ test("a broken page image fails fast with a Thai message and leaves nothing in o
 test("ffmpeg failure rejects with the generic Thai message; detail kept aside", async (t) => {
   const { ep, dir } = setup(t);
   const before = process.env.KIDFACTORY_FFMPEG;
-  process.env.KIDFACTORY_FFMPEG = "/usr/bin/false";
+  process.env.KIDFACTORY_FFMPEG = path.join(dir, "no-such-ffmpeg");
   t.after(() => { if (before === undefined) delete process.env.KIDFACTORY_FFMPEG; else process.env.KIDFACTORY_FFMPEG = before; });
   await assert.rejects(renderEpisode(ep, SIZE), (e) => e.message === "สร้างวิดีโอไม่สำเร็จ" && typeof e.detail === "string" && noThaiDetail(e));
   assert.deepEqual(fs.readdirSync(path.join(dir, "out")), []);

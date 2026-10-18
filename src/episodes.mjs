@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { dataDir } from "./data.mjs";
+import { dataDir, renameRetry } from "./data.mjs";
 
 const episodesDir = () => path.join(dataDir(), "episodes");
 const ID_RE = /^ep-\d{8}-\d{6}(-\d+)?$/;
@@ -16,7 +16,7 @@ function writeJson(file, obj) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.${++tmpCounter}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(obj, null, 2));
-  fs.renameSync(tmp, file);
+  renameRetry(tmp, file);
 }
 
 function stamp(d) {

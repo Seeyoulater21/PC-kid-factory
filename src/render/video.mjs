@@ -13,7 +13,7 @@ import { TIMING, buildTimeline, timelineSeconds, sampleAt } from "../timeline.mj
 import { narrationTrack, wavSeconds } from "../audio.mjs";
 import { staleVoices } from "../pages.mjs";
 import { listTracks, pickTrack, markUsed } from "../music.mjs";
-import { dataDir } from "../data.mjs";
+import { dataDir, renameRetry } from "../data.mjs";
 
 const CLIPS_DIR = fileURLToPath(new URL("../../assets/clips/", import.meta.url));
 const FFMPEG = () => process.env.KIDFACTORY_FFMPEG || "ffmpeg";
@@ -30,7 +30,8 @@ export function safeTitle(title) {
     .replace(/\s+/g, " ")
     .trim()
     .replace(/[. ]+$/, "");
-  return Array.from(s).slice(0, 80).join("").trim() || "episode";
+  const name = Array.from(s).slice(0, 80).join("").trim() || "episode";
+  return /^(con|prn|aux|nul|com\d|lpt\d)(\.|$)/i.test(name) ? `_${name}` : name; // Windows device names
 }
 
 /** Output file name: "EP03 <safe title>.mp4" (no prefix for episodes from before numbering). */
@@ -291,7 +292,7 @@ export async function renderEpisode(ep, { onProgress, width = 1920, height = 108
     });
     progress(0.97);
     await run(FFMPEG(), muxArgs({ video, audio: await audioJob, out: part }));
-    fs.renameSync(part, outFile);
+    renameRetry(part, outFile);
   } catch (e) {
     throw thaiError(e);
   } finally {
