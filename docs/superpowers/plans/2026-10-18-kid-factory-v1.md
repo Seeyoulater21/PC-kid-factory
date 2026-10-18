@@ -117,7 +117,7 @@ Outputs for all calls: iterate `resp.steps` where `type == "model_output"`, take
 - Produces: `assets/style.md` — one paragraph of style traits (Global Constraints) + "no text, letters or numbers in the image"; `characters.md` — for each of `pinto`, `friend`, `cat`: Thai name, one-line look, fixed outfit colors as words. Later tasks read these files verbatim.
 
 - [ ] **Step 1:** Draft `characters.md` (Claude's design, in the spec's style): Pinto — Thai girl ~6, short black bob, fixed outfit; friend — boy ~6, fixed outfit, never named; cat — black cat, red scarf (owner).
-- [ ] **Step 2:** Generate each sheet with **Gemini, `origin.jpg` as reference** (Codex as fallback): white background, front / side / back full body + 4 expressions (happy, surprised, sad, laughing), 16:9, using `style.md` + the character's lines. Save PNGs (≤ 2 MB each) to `assets/characters/`.
+- [ ] **Step 2:** Generate each sheet with **Gemini, `origin.jpg` as reference**: white background, front / side / back full body + 4 expressions (happy, surprised, sad, laughing), 16:9, using `style.md` + the character's lines. Save PNGs (≤ 2 MB each) to `assets/characters/`.
 - [ ] **Step 3:** Check each PNG has no text, the cat is unlike the reference cats, and none resemble the reference book's characters.
 - [ ] **Step 4: Owner gate** — show the 3 sheets; regenerate until the owner approves. Do not continue without approval.
 - [ ] **Step 5: Commit** `feat: main character sheets and style guide`

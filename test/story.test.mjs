@@ -319,6 +319,7 @@ test("imagePrompt has style, every cast member's look, the scene and the no-text
   assert.ok(p.includes(style), "style text");
   assert.ok(p.includes(pg.scene), "scene");
   assert.ok(p.includes(NO_TEXT), "no-text phrase");
+  assert.match(p, /fully dressed in their fixed outfits; no nudity, and no bathing or toilet scenes/);
   for (const id of ["pinto", "cat"]) {
     const ch = cast.characters.find((c) => c.id === id);
     assert.ok(p.includes(ch.look), `${id} look`);

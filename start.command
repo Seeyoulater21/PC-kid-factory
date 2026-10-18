@@ -81,3 +81,6 @@ open_window "http://127.0.0.1:$PORT/"
 echo "READY http://127.0.0.1:$PORT/"
 echo "เปิดแล้ว ปิดหน้าต่างนี้เพื่อปิดโปรแกรม"
 wait "$SERVER_PID"
+# Only reached when the server stopped by itself (Ctrl-C / closing the window go through the trap above).
+echo
+read -r -p "โปรแกรมหยุดทำงาน กด Enter เพื่อปิด" _

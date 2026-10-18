@@ -339,7 +339,7 @@ test("job and page errors never carry the key", async (t) => {
   const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
   await api("POST", `/api/episodes/${id}/images`, { pages: [1] });
   const job = await waitJob(api, id, "images");
-  assert.match(job.error, /ภาพไม่ได้/);
+  assert.match(job.error, /ไม่ยอมวาดหน้านี้/);
   const jobText = (await api("GET", `/api/episodes/${id}/job`)).text;
   const epText = (await api("GET", `/api/episodes/${id}`)).text;
   assert.ok(!jobText.includes(KEY) && !epText.includes(KEY));

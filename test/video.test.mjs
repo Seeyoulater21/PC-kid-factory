@@ -177,3 +177,17 @@ test("a page that breaks mid-render stops ffmpeg and fails with a Thai message",
   assert.ok(Date.now() - t0 < 10000, "does not hang");
   assert.deepEqual(fs.readdirSync(path.join(dir, "out")), []);
 });
+
+test("a raw fs error with a Thai path is not leaked: generic Thai message, raw text only in detail", async (t) => {
+  const { ep, dir } = setup(t);
+  // a non-empty folder where the finished file should go makes the final rename fail with a Thai path in the error
+  const blocker = path.join(dir, "out", outputName(ep));
+  fs.mkdirSync(blocker, { recursive: true });
+  fs.writeFileSync(path.join(blocker, "x"), "x");
+  await assert.rejects(renderEpisode(ep, SIZE), (e) => {
+    assert.equal(e.message, "สร้างวิดีโอไม่สำเร็จ");
+    assert.ok(/ENOTEMPTY|EISDIR|EEXIST|EPERM/.test(e.detail) && e.detail.includes("ปิ่นโต"), `detail: ${e.detail}`);
+    assert.ok(!e.message.includes(os.tmpdir()));
+    return true;
+  });
+});

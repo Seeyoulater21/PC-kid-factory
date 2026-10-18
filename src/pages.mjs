@@ -11,7 +11,25 @@ const GENERIC_ERROR = "เกิดข้อผิดพลาด ลองใ�
 const repoFile = (rel) => new URL(`../${rel}`, import.meta.url);
 const epFile = (ep, rel) => path.join(dataDir(), "episodes", ep.id, rel);
 const pad = (n) => String(n).padStart(2, "0");
-const errText = (e) => (e instanceof GeminiError && e.thai ? e.thai : GENERIC_ERROR);
+const IMAGE_REFUSED = "Gemini ไม่ยอมวาดหน้านี้ ลองกด ↻ ภาพใหม่ อีกครั้ง";
+const SOFTEN = "A gentle, wholesome children's picture-book illustration.\n\n";
+const errText = (e, key) => {
+  if (!(e instanceof GeminiError)) return GENERIC_ERROR;
+  if (key === "image" && e.code === "refused") return IMAGE_REFUSED;
+  if (key === "voice" && e.code === "refused") return "Gemini ไม่ยอมอ่านหน้านี้ ลองแก้คำเล่าแล้วกด ↻";
+  if (key === "voice" && e.code === "empty") return "Gemini ไม่ส่งเสียงหน้านี้กลับมา ลองกด ↻ อีกครั้ง";
+  return e.thai || GENERIC_ERROR;
+};
+
+// An image Gemini refuses is retried once with a softening line before the page is marked as an error.
+async function imageWithRetry(gemini, prompt, refs) {
+  try {
+    return await gemini.image(prompt, refs);
+  } catch (e) {
+    if (!(e instanceof GeminiError) || e.code !== "refused") throw e;
+    return gemini.image(SOFTEN + prompt, refs);
+  }
+}
 
 /** 1-based numbers of pages whose voice is missing or no longer matches the narration. */
 export function staleVoices(ep) {
@@ -57,7 +75,7 @@ async function step(ep, n, key, onChange, call, onDone) {
   try {
     page[key] = { state: "done", ...(await onDone(await call(page))) };
   } catch (e) {
-    page[key] = { state: "error", error: errText(e) };
+    page[key] = { state: "error", error: errText(e, key) };
   } finally {
     if (page[key].state === "working") page[key] = { state: "error", error: GENERIC_ERROR };
     persist(ep, onChange);
@@ -71,7 +89,7 @@ export async function makeImages(ep, gemini, { pages, concurrency = 3, onChange 
   return runPages(ep, nums, concurrency, (n) =>
     step(
       ep, n, "image", onChange,
-      (page) => gemini.image(imagePrompt(page, ep.story, undefined, cast), refs),
+      (page) => imageWithRetry(gemini, imagePrompt(page, ep.story, undefined, cast), refs),
       (bytes) => {
         const file = `img/p${pad(n)}.jpg`;
         fs.mkdirSync(path.dirname(epFile(ep, file)), { recursive: true });

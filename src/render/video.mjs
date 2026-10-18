@@ -39,7 +39,9 @@ export function outputName(ep) {
   return `${n}${safeTitle(ep.story.title)}.mp4`;
 }
 
-const fail = (detail) => Object.assign(new Error(RENDER_FAILED), { detail: String(detail || "").slice(-2000) });
+// The app's own Thai errors carry thai: true; anything else (raw fs/ffmpeg text) is never shown to the user.
+const ownThai = (message, extra = {}) => Object.assign(new Error(message), { thai: true }, extra);
+const fail = (detail) => ownThai(RENDER_FAILED, { detail: String(detail || "").slice(-2000) });
 
 // Run a tool to completion; resolves with stdout/stderr text, rejects (Thai message, detail = stderr tail).
 function run(cmd, args) {
@@ -72,13 +74,13 @@ function checkReady(ep, epPath) {
   pages.forEach((p, i) => {
     if (!p.voice?.file || !fs.existsSync(epPath(p.voice.file))) voices.add(i + 1);
   });
-  if (voices.size) throw new Error(`เสียงหน้า ${[...voices].sort((a, b) => a - b).join(", ")} ยังไม่อัปเดต`);
+  if (voices.size) throw ownThai(`เสียงหน้า ${[...voices].sort((a, b) => a - b).join(", ")} ยังไม่อัปเดต`);
   const images = [];
   pages.forEach((p, i) => {
     if (p.image?.state !== "done" || !p.image.file || !fs.existsSync(epPath(p.image.file))) images.push(i + 1);
   });
-  if (images.length) throw new Error(`ภาพหน้า ${images.join(", ")} ยังไม่เสร็จ`);
-  if (!pages.length) throw new Error("ยังไม่มีหน้าหนังสือ");
+  if (images.length) throw ownThai(`ภาพหน้า ${images.join(", ")} ยังไม่เสร็จ`);
+  if (!pages.length) throw ownThai("ยังไม่มีหน้าหนังสือ");
 }
 
 /** Track the export will use: ep.musicId if it still exists, else the least recently used of the mood. */
@@ -202,9 +204,9 @@ async function encode({ args, frames, draw, onFrame, stopIf }) {
   if (code !== 0) throw fail(err);
 }
 
-// Thai messages pass through; anything else becomes the generic Thai failure (raw text in .detail).
+// Errors flagged thai pass through; anything else becomes the generic Thai failure (raw text in .detail).
 const thaiError = (e, extra = "") =>
-  e?.message && /[\u0E00-\u0E7F]/.test(e.message) ? e : fail(`${e?.message || e}\n${extra}`);
+  e?.thai === true ? e : fail(`${e?.message || e}\n${extra}`);
 
 /**
  * Renders the episode to <episode>/out/<title>.mp4 and returns that path.
@@ -226,7 +228,7 @@ export async function renderEpisode(ep, { onProgress, width = 1920, height = 108
 
   const clip = async (name) => {
     const file = clips[name] || path.join(CLIPS_DIR, `${name}.mp4`);
-    if (!fs.existsSync(file)) throw new Error(`ไม่พบคลิป ${name}.mp4`);
+    if (!fs.existsSync(file)) throw ownThai(`ไม่พบคลิป ${name}.mp4`);
     return { file, audio: await hasAudio(file) };
   };
   // decode every page once up front: a broken file fails fast, with the page named, before ffmpeg starts
@@ -234,7 +236,7 @@ export async function renderEpisode(ep, { onProgress, width = 1920, height = 108
     try {
       return await loadImage(fs.readFileSync(epPath(pages[n - 1].image.file)));
     } catch (e) {
-      throw Object.assign(new Error(`ภาพหน้า ${n} เสียหาย ลองกด ↻ ภาพใหม่`), { detail: String(e?.message || e) });
+      throw ownThai(`ภาพหน้า ${n} เสียหาย ลองกด ↻ ภาพใหม่`, { detail: String(e?.message || e) });
     }
   };
   for (let n = 1; n <= pages.length; n++) await decode(n);

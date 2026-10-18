@@ -48,7 +48,7 @@ test("one failed page does not stop the others", async () => {
   const out = await makeImages(ep, g, { concurrency: 2 });
   const [a, b, c] = out.story.pages;
   assert.equal(b.image.state, "error");
-  assert.equal(b.image.error, "ภาพถูกปฏิเสธ");
+  assert.equal(b.image.error, "Gemini ไม่ยอมวาดหน้านี้ ลองกด ↻ ภาพใหม่ อีกครั้ง");
   assert.equal(a.image.state, "done");
   assert.equal(c.image.state, "done");
   assert.ok(fs.existsSync(path.join(process.env.KIDFACTORY_DATA, "episodes", ep.id, a.image.file)));
@@ -153,4 +153,42 @@ test("estimateCost: images + voices + story, in USD and baht", async () => {
   assert.ok(Math.abs(c.thb - usd * 33) < 1e-9);
   // a newly generated music track adds its price; reused tracks are free
   assert.ok(Math.abs(estimateCost(ep, { newTracks: 1 }).usd - (usd + 0.08)) < 1e-9);
+});
+
+test("a refused image is retried once with a softening line and then succeeds", async () => {
+  const ep = ep3(setup());
+  const prompts = [];
+  let first = true;
+  const g = {
+    image: async (p) => {
+      prompts.push(p);
+      if (first) { first = false; throw new GeminiError("refused", "x"); }
+      return Buffer.from("jpg");
+    },
+  };
+  const out = await makeImages(ep, g, { pages: [1] });
+  assert.equal(out.story.pages[0].image.state, "done");
+  assert.equal(prompts.length, 2);
+  assert.ok(!prompts[0].startsWith("A gentle, wholesome children's picture-book illustration."));
+  assert.ok(prompts[1].startsWith("A gentle, wholesome children's picture-book illustration."));
+  assert.ok(prompts[1].endsWith(prompts[0]));
+});
+
+test("an image refused twice becomes an error with the image-specific Thai text", async () => {
+  const ep = ep3(setup());
+  let n = 0;
+  const g = { image: async () => { n++; throw new GeminiError("refused", "x"); } };
+  const out = await makeImages(ep, g, { pages: [1] });
+  assert.equal(n, 2);
+  assert.equal(out.story.pages[0].image.state, "error");
+  assert.equal(out.story.pages[0].image.error, "Gemini ไม่ยอมวาดหน้านี้ ลองกด ↻ ภาพใหม่ อีกครั้ง");
+});
+
+test("non-refusal image errors are not retried", async () => {
+  const ep = ep3(setup());
+  let n = 0;
+  const g = { image: async () => { n++; throw new GeminiError("busy", "x"); } };
+  const out = await makeImages(ep, g, { pages: [1] });
+  assert.equal(n, 1);
+  assert.equal(out.story.pages[0].image.error, "Gemini ไม่ว่าง ลองใหม่อีกครั้ง");
 });

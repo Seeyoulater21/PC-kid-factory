@@ -185,6 +185,9 @@ function describe(id, story, cast) {
 }
 
 /** The image prompt for one page. */
+export const SAFE_DRESS =
+  "Characters are always fully dressed in their fixed outfits; no nudity, and no bathing or toilet scenes shown in detail.";
+
 export function imagePrompt(page, story, style = loadStyle(), cast = loadCast()) {
   const people = (page.cast ?? []).map((id) => describe(id, story, cast)).filter(Boolean);
   const who = people.length
@@ -198,5 +201,6 @@ Scene (draw this place exactly as described, do not move it elsewhere): ${page.s
 ${who}
 
 Mood: ${mood}.
+${SAFE_DRESS}
 ${NO_TEXT}`;
 }

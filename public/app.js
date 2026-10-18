@@ -183,7 +183,7 @@ function drawIdeas() {
 }
 
 async function writeStory(idea, keep) {
-  busy("กำลังเขียนเรื่อง… ประมาณ 1 นาที", "อย่าเพิ่งปิดหน้าต่างนะ");
+  busy("กำลังเขียนเรื่อง… ใช้เวลาประมาณ 1–3 นาที", "อย่าเพิ่งปิดหน้าต่างนะ");
   try {
     const { id } = await api("POST", "/api/episodes", { idea, keep });
     ideasFound = null;

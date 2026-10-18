@@ -132,3 +132,10 @@ test("Free Tier limit 0 maps to credit and is not retried", async () => {
   assert.equal(r.f.calls.length, 1);
   assert.equal(r.e.thai, "ต้องเปิดการชำระเงินใน Google AI Studio ก่อนจึงจะวาดภาพได้");
 });
+
+test("generic refusal and empty texts are neutral (no page wording)", async () => {
+  let r = await fail([reply(400, { error: { message: "Input blocked: prohibited_content", code: "prohibited_content" } })]);
+  assert.equal(r.e.thai, "Gemini ไม่ยอมทำตามคำขอนี้ ลองใหม่อีกครั้ง");
+  r = await fail([reply(200, out({ type: "text", text: "no image" }))], (g) => g.image("p", []));
+  assert.equal(r.e.thai, "Gemini ไม่ส่งผลลัพธ์กลับมา ลองใหม่");
+});
