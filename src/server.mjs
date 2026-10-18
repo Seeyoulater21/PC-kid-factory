@@ -241,6 +241,7 @@ export function createServer(opts = {}) {
       version: currentVersion(),
       updated: resultShown ? null : ((resultShown = true), updater.result()), // last update's outcome, shown once
     })],
+    ["GET", /^\/api\/version$/, () => ({ version: currentVersion() })], // health check of the update helper
     ["GET", /^\/api\/update$/, async () => {
       const { current, latest, available, notes } = await updater.check();
       return { current, latest, available, notes, canUpdate: updater.canUpdate() };

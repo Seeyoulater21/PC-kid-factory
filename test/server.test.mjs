@@ -365,6 +365,7 @@ test("state carries the app version and the last update's outcome once", async (
   assert.match(first.version, /^\d+\.\d+\.\d+$/);
   assert.deepEqual(first.updated, { ok: true, from: "0.1.0", to: "0.2.0" });
   assert.equal((await api("GET", "/api/state")).json.updated, null);
+  assert.equal((await api("GET", "/api/version")).json.version, first.version);
 });
 
 test("GET /api/update reports a newer version without the manifest", async (t) => {

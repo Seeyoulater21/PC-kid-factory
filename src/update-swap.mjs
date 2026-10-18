@@ -33,7 +33,7 @@ function startApp(cmd) {
 async function answers(version) {
   for (const port of PORTS) {
     try {
-      const r = await fetch(`http://127.0.0.1:${port}/api/state`, { signal: AbortSignal.timeout(1500) });
+      const r = await fetch(`http://127.0.0.1:${port}/api/version`, { signal: AbortSignal.timeout(1500) });
       if (r.ok && (await r.json()).version === version) return true;
     } catch {}
   }
@@ -71,8 +71,9 @@ export async function swap(job, { start = startApp, healthy = waitHealthy, exitW
     return start(job.relaunch);
   }
 
+  write({ ok: true }); // before the start: the new window reads it on its first load
   start(job.relaunch);
-  if (await healthy(job.version)) return write({ ok: true });
+  if (await healthy(job.version)) return;
 
   // roll back: the new version did not come up
   const failed = `${job.staged}-failed`;

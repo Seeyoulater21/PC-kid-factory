@@ -124,7 +124,10 @@ function swapJob(t) {
 test("swap: new version in place, old kept, app started, result ok", async (t) => {
   const { job, ver, dir } = swapJob(t);
   const started = [];
-  await swap(job, { start: (c) => started.push(c), healthy: async () => true, exitWait: 0 });
+  let resultAtStart = null;
+  const start = (c) => { started.push(c); resultAtStart = JSON.parse(fs.readFileSync(job.result, "utf8")).ok; };
+  await swap(job, { start, healthy: async () => true, exitWait: 0 });
+  assert.equal(resultAtStart, true, "result is written before the new version starts");
   assert.equal(ver(), "0.3.0");
   assert.equal(JSON.parse(fs.readFileSync(path.join(job.old, "package.json"), "utf8")).version, "0.2.0");
   assert.deepEqual(started, [["go"]]);
