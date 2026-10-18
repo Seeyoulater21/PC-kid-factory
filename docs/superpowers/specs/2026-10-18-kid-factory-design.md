@@ -110,6 +110,7 @@ to post, without calling the owner.
   royalty-free tracks. Every track keeps a note of where it came from.
 
 ### Channel intro / outro
+- Show name: **ปิ่นโตเก่งขึ้นทุกวัน** (owner, 2026-10-18). The owner's finished intro shows it.
 - The owner will supply the channel's own intro and outro clips. Each is **locked at 5 seconds**. The app
   adds them automatically at the start and end of every video. The story itself has no cover/title page.
   Owner confirmed; the real clips arrive later. Until then build with a **placeholder 5-second intro and outro**
