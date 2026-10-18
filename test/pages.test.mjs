@@ -108,3 +108,32 @@ test("editing narration marks voice stale", async () => {
   assert.deepEqual(staleVoices(again), []);
   assert.equal(g.calls.speech.length, 4);
 });
+
+const allSettled = (ep, key) => ep.story.pages.every((p) => ["done", "error"].includes(p[key].state));
+
+test("onChange that throws does not break the run", async () => {
+  const ep = ep3(setup());
+  let calls = 0;
+  const out = await makeImages(ep, fake(), { onChange: () => { calls++; throw new Error("ui"); } });
+  assert.ok(calls > 0);
+  assert.ok(allSettled(out, "image"));
+  assert.equal(out.story.pages.filter((p) => p.image.state === "working").length, 0);
+});
+
+test("pool: 5 pages, concurrency 2, max in flight is 2, a throwing page does not stall", async () => {
+  const ep = setup();
+  ep.story.pages = ep.story.pages.slice(0, 5);
+  const g = fake({ failOn: ep.story.pages[1].narration });
+  const out = await makeVoices(ep, g, { concurrency: 2 });
+  assert.equal(g.calls.max, 2);
+  assert.equal(out.story.pages.filter((p) => p.voice.state === "done").length, 4);
+  assert.equal(out.story.pages[1].voice.state, "error");
+});
+
+test("non-numeric concurrency falls back to 3", async () => {
+  const ep = setup();
+  ep.story.pages = ep.story.pages.slice(0, 5);
+  const g = fake();
+  await makeImages(ep, g, { concurrency: "abc" });
+  assert.equal(g.calls.max, 3);
+});

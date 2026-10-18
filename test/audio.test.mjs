@@ -39,3 +39,26 @@ test("narrationTrack places parts", () => {
   assert.equal(out.samples[Math.round(1.0 * 24000)], 0);
   assert.equal(out.samples[Math.round(2.1 * 24000)], 8000);
 });
+
+test("narrationTrack sums overlap and clamps", () => {
+  const part = writeWav({ rate: 24000, channels: 1, samples: tone(24000, 20000) });
+  const out = readWav(narrationTrack([{ wav: part, at: 0 }, { wav: part, at: 0.5 }], 2));
+  assert.equal(out.samples[Math.round(0.25 * 24000)], 20000);
+  assert.equal(out.samples[Math.round(0.75 * 24000)], 32767);
+  assert.equal(out.samples[Math.round(1.25 * 24000)], 20000);
+});
+
+test("narrationTrack truncates a part past totalSeconds", () => {
+  const part = writeWav({ rate: 24000, channels: 1, samples: tone(24000) });
+  const out = readWav(narrationTrack([{ wav: part, at: 1.5 }], 2));
+  assert.equal(out.samples.length, 48000);
+  assert.equal(out.samples[Math.round(1.75 * 24000)], 8000);
+  assert.equal(out.samples[Math.round(1.25 * 24000)], 0);
+});
+
+test("narrationTrack resamples a 16 kHz part to 24 kHz length", () => {
+  const part = writeWav({ rate: 16000, channels: 1, samples: tone(16000) });
+  const out = readWav(narrationTrack([{ wav: part, at: 0 }], 2));
+  assert.equal(out.samples[23999], 8000);
+  assert.equal(out.samples[24000], 0);
+});

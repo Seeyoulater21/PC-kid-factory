@@ -22,13 +22,19 @@ export function staleVoices(ep) {
   return out;
 }
 
-async function runPages(ep, nums, concurrency, onChange, work) {
+async function runPages(ep, nums, concurrency, work) {
   const queue = [...nums];
   const worker = async () => {
-    for (let n = queue.shift(); n !== undefined; n = queue.shift()) await work(n);
+    for (let n = queue.shift(); n !== undefined; n = queue.shift()) {
+      try {
+        await work(n);
+      } catch {
+        // step() already records failures per page; never let one page kill the worker
+      }
+    }
   };
-  const size = Math.max(1, Math.min(concurrency, queue.length));
-  await Promise.all(Array.from({ length: size }, worker));
+  const limit = Math.max(1, Math.floor(Number(concurrency)) || 3);
+  await Promise.all(Array.from({ length: Math.min(limit, queue.length) }, worker));
   return ep;
 }
 
@@ -38,25 +44,31 @@ function pick(ep, pages, wanted) {
   return [...new Set(nums)].filter((n) => Number.isInteger(n) && n >= 1 && n <= total);
 }
 
+// Saving and the UI callback must never break a page: failures there are ignored.
+function persist(ep, onChange) {
+  try { saveEpisode(ep); } catch { /* disk trouble: in-memory state stays correct */ }
+  try { onChange?.(ep); } catch { /* UI callback trouble */ }
+}
+
 async function step(ep, n, key, onChange, call, onDone) {
   const page = ep.story.pages[n - 1];
   page[key] = { state: "working" };
-  saveEpisode(ep);
-  onChange?.(ep);
+  persist(ep, onChange);
   try {
     page[key] = { state: "done", ...(await onDone(await call(page))) };
   } catch (e) {
     page[key] = { state: "error", error: errText(e) };
+  } finally {
+    if (page[key].state === "working") page[key] = { state: "error", error: GENERIC_ERROR };
+    persist(ep, onChange);
   }
-  saveEpisode(ep);
-  onChange?.(ep);
 }
 
 export async function makeImages(ep, gemini, { pages, concurrency = 3, onChange } = {}) {
   const cast = loadCast();
   const refs = cast.characters.map((c) => ({ data: fs.readFileSync(repoFile(c.sheet)), mime: "image/jpeg" }));
   const nums = pick(ep, pages, (n) => ep.story.pages[n - 1].image?.state !== "done");
-  return runPages(ep, nums, concurrency, onChange, (n) =>
+  return runPages(ep, nums, concurrency, (n) =>
     step(
       ep, n, "image", onChange,
       (page) => gemini.image(imagePrompt(page, ep.story, undefined, cast), refs),
@@ -73,7 +85,7 @@ export async function makeVoices(ep, gemini, { pages, concurrency = 3, onChange 
   const cast = loadCast();
   const stale = new Set(staleVoices(ep));
   const nums = pick(ep, pages, (n) => stale.has(n));
-  return runPages(ep, nums, concurrency, onChange, (n) =>
+  return runPages(ep, nums, concurrency, (n) =>
     step(
       ep, n, "voice", onChange,
       (page) => gemini.speech(page.narration, { voice: cast.voice, style: cast.voiceStyle }).then((wav) => ({ wav, text: page.narration })),
