@@ -24,10 +24,10 @@ ManifestDPIAware true
 !insertmacro MUI_LANGUAGE "Thai"
 
 ; A running copy holds node/ffmpeg/ffprobe open; stop only our own runtime before replacing files.
-; The folder goes in through an environment variable, so quotes in a user name cannot break the command.
+; Matched by folder name, not $INSTDIR, so quotes in a user name cannot break the command. WMI, because this
+; 32-bit installer starts a 32-bit PowerShell, which cannot read the path of the 64-bit node.exe.
 !macro StopApp
-  System::Call 'Kernel32::SetEnvironmentVariable(t "KF_RUNTIME", t "$INSTDIR\runtime\")'
-  nsExec::Exec `powershell -NoProfile -Command "Get-Process node,ffmpeg,ffprobe -ErrorAction SilentlyContinue | Where-Object { $$_.Path -and $$_.Path.StartsWith($$env:KF_RUNTIME, 'OrdinalIgnoreCase') } | Stop-Process -Force"`
+  nsExec::Exec `powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -like '*\KidFactory\runtime\*' } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"`
   Pop $0
 !macroend
 
