@@ -16,7 +16,7 @@
 - The Gemini key is stored only in `<dataDir>/config.json`; never logged, never returned by any API route, never in error messages.
 - One AI provider: Gemini Interactions API `POST https://generativelanguage.googleapis.com/v1beta/interactions`, header `x-goog-api-key`.
 - Models (one constant `MODELS` in `src/gemini.mjs`): ideas `gemini-3.8-flash`, story `gemini-4-argon`, image `gemini-nano-banana-2.1`, voice `gemini-3.8-flash-tts`, music `lyria-3.5`.
-- Images: `response_format: {type:"image", mime_type:"image/png", aspect_ratio:"16:9", image_size:"2K"}`; up to 5 character reference images per call (we send 3 main sheets + up to 2 extra).
+- Images: `response_format: {type:"image", mime_type:"image/jpeg", aspect_ratio:"16:9", image_size:"2K"}` (verified 2026-10-18: `image/png` is rejected, only `image/jpeg`). Do not validate the key format (current keys do not start with `AIza`).; up to 5 character reference images per call (we send 3 main sheets + up to 2 extra).
 - UI copy in **Thai**; code, comments, commits, docs in English.
 - Picture + narration only: **no text drawn on pages, no subtitles.** Prompts must forbid text/letters in images.
 - Narration: one **Thai female** narrator for the whole episode.
@@ -82,7 +82,7 @@ Data folder: `<home>/KidFactory/` (override with env `KIDFACTORY_DATA` for tests
   - `MODELS` (values in Global Constraints)
   - `createGemini({key, fetch = globalThis.fetch, sleep}): Gemini` with
     - `json(model, prompt: string, schema: object): Promise<any>` — `response_format {type:"text", mime_type:"application/json", schema}`, returns parsed object
-    - `image(prompt: string, refs: {data: Buffer, mime: string}[]): Promise<Buffer>` — PNG bytes
+    - `image(prompt: string, refs: {data: Buffer, mime: string}[]): Promise<Buffer>` — JPEG bytes
     - `speech(text: string, {voice, style}): Promise<Buffer>` — WAV bytes (body shape below)
     - `music(prompt: string): Promise<Buffer>` — MP3 bytes
   - `class GeminiError extends Error { code: "key"|"credit"|"busy"|"refused"|"network"|"empty"; thai: string }`
@@ -129,6 +129,7 @@ Outputs for all calls: iterate `resp.steps` where `type == "model_output"`, take
 - Consumes: `createGemini`, `MODELS`, `readConfig` (Task 1); `assets/*` (Task 2)
 - Produces: decisions written into `assets/characters/characters.md` (`voice:` line, `voice_style:` line) and into the plan's notes below: whether images need the extra "style anchor" reference.
 
+- [ ] **Step 0:** The key's Google project must have billing on: on the free tier the image model allows 0 requests/day (verified 2026-10-18, HTTP 429 `limit: 0`). Map that 429 body to `GeminiError` code `"credit"` with Thai "ต้องเปิดการชำระเงินใน Google AI Studio ก่อนจึงจะวาดภาพได้" (add to Task 1 tests).
 - [ ] **Step 1:** `node scripts/spike.mjs images` → 6 page images (hand-written scenes about brushing teeth, mixing 1–3 main characters and one side character "แม่") into `<dataDir>/spike/`. Check: characters recognisable, style flat/outlined, no text.
 - [ ] **Step 2:** If consistency is weak, retry adding the best approved page as a 4th "style anchor" reference; keep the better approach. Owner decided: small differences are accepted; no second provider.
 - [ ] **Step 3:** `node scripts/spike.mjs voices` → the same Thai paragraph in 4 female prebuilt voices with a warm storyteller style → `<dataDir>/spike/voices/`. **Owner picks one** by listening; record it in `characters.md`.
@@ -211,7 +212,7 @@ Outputs for all calls: iterate `resp.steps` where `type == "model_output"`, take
   - `wav round-trip` and `wavSeconds` of 24000 samples @24 kHz = 1.0
   - `narrationTrack places parts` — two 0.5 s tones at 0 and 2 ⇒ 3.0 s total, silence at 1.0 s, signal at 2.1 s
 - [ ] **Step 2: Run** → FAIL
-- [ ] **Step 3: Implement.** Images saved `img/pNN.png`, voices `voice/pNN.wav`; `onChange` after each page so the UI can poll; `saveEpisode` after each page.
+- [ ] **Step 3: Implement.** Images saved `img/pNN.jpg`, voices `voice/pNN.wav`; `onChange` after each page so the UI can poll; `saveEpisode` after each page.
 - [ ] **Step 4: Run** → PASS
 - [ ] **Step 5: Commit** `feat: page images and voice`
 
