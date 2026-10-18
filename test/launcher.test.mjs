@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { pickPort, isFree, edgePath } from "../src/launcher.mjs";
+import { pickPort, isFree, edgePath, profileInUse } from "../src/launcher.mjs";
 
 test("pickPort reuses a running Kid Factory before taking a free port", async () => {
   const ports = [1, 2, 3];
@@ -27,6 +27,17 @@ test("edgePath finds msedge.exe in the usual folders, else undefined", () => {
   const want = path.join("PF", "Microsoft", "Edge", "Application", "msedge.exe");
   assert.equal(edgePath(env, (p) => p === want), want);
   assert.equal(edgePath(env, () => false), undefined);
+});
+
+test("profileInUse: a locked lockfile means an Edge window is still open", () => {
+  const fail = (code) => () => { throw Object.assign(new Error(code), { code }); };
+  assert.equal(profileInUse("p", fail("EBUSY")), true);
+  assert.equal(profileInUse("p", fail("EPERM")), true);
+  assert.equal(profileInUse("p", fail("ENOENT")), false);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kf-prof-"));
+  fs.writeFileSync(path.join(dir, "lockfile"), "");
+  assert.equal(profileInUse(dir), false);
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 test("launcher starts the server on a free port, then reuses it", async (t) => {

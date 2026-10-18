@@ -23,9 +23,11 @@ ManifestDPIAware true
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "Thai"
 
-; A running copy holds node.exe open; stop only our own copy before replacing files.
+; A running copy holds node/ffmpeg/ffprobe open; stop only our own runtime before replacing files.
+; The folder goes in through an environment variable, so quotes in a user name cannot break the command.
 !macro StopApp
-  nsExec::Exec `powershell -NoProfile -Command "Get-Process node -ErrorAction SilentlyContinue | Where-Object { $$_.Path -eq '$INSTDIR\runtime\node.exe' } | Stop-Process -Force"`
+  System::Call 'Kernel32::SetEnvironmentVariable(t "KF_RUNTIME", t "$INSTDIR\runtime\")'
+  nsExec::Exec `powershell -NoProfile -Command "Get-Process node,ffmpeg,ffprobe -ErrorAction SilentlyContinue | Where-Object { $$_.Path -and $$_.Path.StartsWith($$env:KF_RUNTIME, 'OrdinalIgnoreCase') } | Stop-Process -Force"`
   Pop $0
 !macroend
 
@@ -49,6 +51,13 @@ Section Uninstall
   !insertmacro StopApp
   Delete "$DESKTOP\${APP}.lnk"
   Delete "$SMPROGRAMS\${APP}.lnk"
-  RMDir /r "$INSTDIR"
+  ; only what the installer put there, in case the folder was chosen by hand
+  RMDir /r "$INSTDIR\app"
+  RMDir /r "$INSTDIR\runtime"
+  Delete "$INSTDIR\KidFactory.exe"
+  Delete "$INSTDIR\icon.ico"
+  Delete "$INSTDIR\uninstall.exe"
+  RMDir "$INSTDIR"
+  RMDir /r "$LOCALAPPDATA\KidFactory" ; window profile and launcher log, not the data folder
   DeleteRegKey HKCU "${UNINST_KEY}"
 SectionEnd

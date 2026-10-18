@@ -4,7 +4,8 @@
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const PORTS = Array.from({ length: 11 }, (_, i) => 4848 + i);
@@ -42,6 +43,16 @@ export function edgePath(env = process.env, exists = fs.existsSync) {
     .find((p) => exists(p));
 }
 
+/** Edge keeps <profile>\lockfile open (no sharing) while any window of that profile is open. */
+export function profileInUse(profile, open = fs.openSync) {
+  try {
+    fs.closeSync(open(path.join(profile, "lockfile"), "r+"));
+    return false;
+  } catch (e) {
+    return e.code === "EBUSY" || e.code === "EPERM" || e.code === "EACCES";
+  }
+}
+
 // Resolves when the window closes. Without Edge the default browser opens and the server keeps running.
 function openWindow(url) {
   const edge = edgePath();
@@ -51,7 +62,11 @@ function openWindow(url) {
   }
   const profile = path.join(process.env.LOCALAPPDATA || process.cwd(), "KidFactory", "edge-profile");
   const p = spawn(edge, [`--app=${url}`, `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check"], { stdio: "ignore" });
-  return new Promise((resolve) => { p.on("exit", resolve); p.on("error", resolve); });
+  // When this profile is already open (an old window), Edge hands the URL over and this process exits at once,
+  // so wait on the profile lock rather than on the process.
+  return new Promise((resolve) => { p.on("exit", resolve); p.on("error", resolve); }).then(async () => {
+    while (profileInUse(profile)) await sleep(1000);
+  });
 }
 
 // A hidden process has no console, so problems are shown in a small Windows message box.
@@ -79,7 +94,9 @@ async function main() {
   await new Promise((resolve, reject) => { server.once("error", reject); server.listen(picked.port, "127.0.0.1", resolve); });
   if (noWindow) return console.log(`READY ${url}`);
   await openWindow(url);
-  process.exit(0); // window closed: stop the server (and any render in progress)
+  // Window closed: stop the server and any render in progress (ffmpeg children would outlive a plain exit on Windows).
+  spawnSync("taskkill", ["/PID", String(process.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+  process.exit(0);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(fs.realpathSync(process.argv[1])).href) {
