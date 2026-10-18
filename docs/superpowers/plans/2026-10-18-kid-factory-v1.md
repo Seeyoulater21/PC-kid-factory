@@ -22,7 +22,7 @@
 - Narration: one **Thai female** narrator for the whole episode.
 - Page budget: about 4 pages per minute; a ~5-minute episode has **at most 20 pages** (allowed 12–20).
 - Page turn **1.5 s**; slow zoom while a page is held; intro and outro **5 s** each, swappable files.
-- Main characters (locked): น้องปิ่นโต (girl), เพื่อน (unnamed boy), a cat friend unlike the reference cats. Side characters allowed, style matters more than identity.
+- Main characters (locked): น้องปิ่นโต (girl), เพื่อน (unnamed boy), a black cat with a red scarf. Look and art style come from `assets/characters/origin.jpg` (owner's pick). Side characters allowed, style matters more than identity.
 - Style traits (words only): flat vector, no 3D shading, thick clean black outlines, bright flat saturated colors, big round eyes, pink dash blush, full-bleed uncluttered scenes.
 - Music: only Lyria-generated or verifiably royalty-free tracks; every track has a sidecar with source + licence + date.
 - Paths: all generated files are named by ids (`p01.png`), never by Thai titles; only the exported MP4 carries the Thai title. Paths with spaces and Thai characters must work.
@@ -114,8 +114,8 @@ Outputs for all calls: iterate `resp.steps` where `type == "model_output"`, take
 **Interfaces:**
 - Produces: `assets/style.md` — one paragraph of style traits (Global Constraints) + "no text, letters or numbers in the image"; `characters.md` — for each of `pinto`, `friend`, `cat`: Thai name, one-line look, fixed outfit colors as words. Later tasks read these files verbatim.
 
-- [ ] **Step 1:** Draft `characters.md` (Claude's design, in the spec's style): Pinto — Thai girl ~6, short black bob, fixed outfit; friend — boy ~6, fixed outfit, never named; cat — a species-appropriate cat whose colors/markings/outfit differ clearly from a yellow striped cat and a grey-and-white cat (e.g. a cream-orange calico with a scarf — final call by owner).
-- [ ] **Step 2:** Generate each sheet with **Codex image generation** (owner's decision; Codex CLI from the ChatGPT app): white background, front / side / back full body + 4 expressions (happy, surprised, sad, laughing), 16:9, using `style.md` + the character's lines. Save PNGs (≤ 2 MB each) to `assets/characters/`.
+- [ ] **Step 1:** Draft `characters.md` (Claude's design, in the spec's style): Pinto — Thai girl ~6, short black bob, fixed outfit; friend — boy ~6, fixed outfit, never named; cat — black cat, red scarf (owner).
+- [ ] **Step 2:** Generate each sheet with **Gemini, `origin.jpg` as reference** (Codex as fallback): white background, front / side / back full body + 4 expressions (happy, surprised, sad, laughing), 16:9, using `style.md` + the character's lines. Save PNGs (≤ 2 MB each) to `assets/characters/`.
 - [ ] **Step 3:** Check each PNG has no text, the cat is unlike the reference cats, and none resemble the reference book's characters.
 - [ ] **Step 4: Owner gate** — show the 3 sheets; regenerate until the owner approves. Do not continue without approval.
 - [ ] **Step 5: Commit** `feat: main character sheets and style guide`
