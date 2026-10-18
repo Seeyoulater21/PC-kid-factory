@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import {
   createEpisode, loadEpisode, saveEpisode, listEpisodes, editNarration,
-  saveIdeas, listSavedIdeas, removeSavedIdea,
+  saveIdeas, listSavedIdeas, removeSavedIdea, episodeStatus,
 } from "../src/episodes.mjs";
 
 const sample = JSON.parse(fs.readFileSync(new URL("../docs/sample-story.json", import.meta.url), "utf8"));
@@ -64,12 +64,13 @@ test("files are named by id, not title", () => {
   assert.equal(listEpisodes()[0].title, sample.story.title);
 });
 
-test("listEpisodes returns id, title, createdAt, newest first", () => {
+test("listEpisodes returns id, number, title, createdAt, status, highest number first", () => {
   tmp();
   const a = createEpisode(sample.idea, sample.story);
   const b = createEpisode(sample.idea, sample.story);
   const l = listEpisodes();
-  assert.deepEqual(Object.keys(l[0]).sort(), ["createdAt", "id", "title"]);
+  assert.deepEqual(Object.keys(l[0]).sort(), ["createdAt", "id", "number", "status", "title"]);
+  assert.equal(l[0].status, "เขียนเรื่องแล้ว");
   assert.equal(l[0].id, b.id);
   assert.equal(l[1].id, a.id);
 });
@@ -120,4 +121,65 @@ test("episode ids that are not ep-… are rejected (no path traversal)", () => {
   tmp();
   assert.throws(() => loadEpisode("../x"));
   assert.throws(() => saveEpisode({ id: "../x", story: { pages: [] } }));
+});
+
+test("episode numbers count up from 1; old episodes without a number do not break it", () => {
+  const d = tmp();
+  const a = createEpisode(sample.idea, sample.story);
+  assert.equal(a.number, 1);
+  const old = createEpisode(sample.idea, sample.story);
+  delete old.number;
+  saveEpisode(old);
+  const b = createEpisode(sample.idea, sample.story);
+  assert.equal(b.number, 2);
+  const l = listEpisodes();
+  assert.deepEqual(l.map((e) => e.number), [2, 1, null]);
+  assert.equal(l[2].id, old.id);
+  fs.rmSync(path.join(d, "episodes", a.id), { recursive: true });
+  assert.equal(createEpisode(sample.idea, sample.story).number, 3);
+});
+
+test("episodeStatus: written → in progress → ready → done → needs re-render", () => {
+  const d = tmp();
+  const ep = createEpisode(sample.idea, { ...sample.story, pages: sample.story.pages.slice(0, 2) });
+  const dir = path.join(d, "episodes", ep.id);
+  const put = (rel, when) => {
+    fs.writeFileSync(path.join(dir, rel), "x");
+    fs.utimesSync(path.join(dir, rel), when, when);
+  };
+  const t0 = new Date(Date.now() - 60_000), t1 = new Date(Date.now() - 30_000), t2 = new Date();
+  assert.equal(episodeStatus(ep), "เขียนเรื่องแล้ว");
+  put("img/p01.jpg", t0);
+  ep.story.pages[0].image = { state: "done", file: "img/p01.jpg" };
+  assert.equal(episodeStatus(ep), "ภาพ 1/2 · เสียง 0/2");
+  ep.story.pages.forEach((p, i) => {
+    const n = String(i + 1).padStart(2, "0");
+    put(`img/p${n}.jpg`, t0);
+    put(`voice/p${n}.wav`, t0);
+    p.image = { state: "done", file: `img/p${n}.jpg` };
+    p.voice = { state: "done", file: `voice/p${n}.wav`, seconds: 1, forText: p.narration };
+  });
+  assert.equal(episodeStatus(ep), "พร้อมประกอบ");
+  put("out/EP01 x.mp4", t1);
+  ep.video = { file: "out/EP01 x.mp4" };
+  assert.equal(episodeStatus(ep), "วิดีโอเสร็จ");
+  put("img/p02.jpg", t2); // a picture redone after the render
+  assert.equal(episodeStatus(ep), "ต้องประกอบใหม่");
+  ep.story.pages[1].narration = "ใหม่"; // edited text: its voice is stale again
+  assert.equal(episodeStatus(ep), "ภาพ 2/2 · เสียง 1/2");
+});
+
+test("episodeStatus finds a rendered file in out/ even without ep.video", () => {
+  const d = tmp();
+  const ep = createEpisode(sample.idea, { ...sample.story, pages: sample.story.pages.slice(0, 1) });
+  const dir = path.join(d, "episodes", ep.id);
+  fs.writeFileSync(path.join(dir, "img/p01.jpg"), "x");
+  fs.writeFileSync(path.join(dir, "voice/p01.wav"), "x");
+  const old = new Date(Date.now() - 60_000);
+  fs.utimesSync(path.join(dir, "img/p01.jpg"), old, old);
+  fs.utimesSync(path.join(dir, "voice/p01.wav"), old, old);
+  ep.story.pages[0].image = { state: "done", file: "img/p01.jpg" };
+  ep.story.pages[0].voice = { state: "done", file: "voice/p01.wav", seconds: 1, forText: ep.story.pages[0].narration };
+  fs.writeFileSync(path.join(dir, "out", "EP01 เรื่อง.mp4"), "x");
+  assert.equal(episodeStatus(ep), "วิดีโอเสร็จ");
 });

@@ -33,6 +33,12 @@ export function safeTitle(title) {
   return Array.from(s).slice(0, 80).join("").trim() || "episode";
 }
 
+/** Output file name: "EP03 <safe title>.mp4" (no prefix for episodes from before numbering). */
+export function outputName(ep) {
+  const n = Number.isInteger(ep.number) && ep.number > 0 ? `EP${String(ep.number).padStart(2, "0")} ` : "";
+  return `${n}${safeTitle(ep.story.title)}.mp4`;
+}
+
 const fail = (detail) => Object.assign(new Error(RENDER_FAILED), { detail: String(detail || "").slice(-2000) });
 
 // Run a tool to completion; resolves with stdout/stderr text, rejects (Thai message, detail = stderr tail).
@@ -237,7 +243,7 @@ export async function renderEpisode(ep, { onProgress, width = 1920, height = 108
 
   const outDir = epPath("out");
   fs.mkdirSync(outDir, { recursive: true });
-  const outFile = path.join(outDir, `${safeTitle(ep.story.title)}.mp4`);
+  const outFile = path.join(outDir, outputName(ep));
   const part = `${outFile}.part`;
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "kf-render-"));
   let audioJob = null;

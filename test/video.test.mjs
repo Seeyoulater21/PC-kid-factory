@@ -8,7 +8,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { createEpisode, saveEpisode } from "../src/episodes.mjs";
 import { writeWav } from "../src/audio.mjs";
 import { addTrack, listTracks } from "../src/music.mjs";
-import { renderEpisode, safeTitle, chooseMusic } from "../src/render/video.mjs";
+import { renderEpisode, safeTitle, chooseMusic, outputName } from "../src/render/video.mjs";
 
 const FFMPEG = process.env.KIDFACTORY_FFMPEG || "ffmpeg";
 const FFPROBE = process.env.KIDFACTORY_FFPROBE || "ffprobe";
@@ -79,6 +79,12 @@ function checkVideo(file) {
   assert.ok(Math.abs(d - 16.3) <= 0.2, `duration ${d} ≈ 16.3`);
 }
 
+test("outputName: 2-digit episode number, then the safe title; no number, no prefix", () => {
+  assert.equal(outputName({ number: 3, story: { title: "ปิ่นโต: ล้างมือ" } }), "EP03 ปิ่นโต ล้างมือ.mp4");
+  assert.equal(outputName({ number: 112, story: { title: "ก" } }), "EP112 ก.mp4");
+  assert.equal(outputName({ story: { title: "ก" } }), "ก.mp4");
+});
+
 test("safeTitle keeps Thai and spaces, drops illegal characters", () => {
   assert.equal(safeTitle('  ปิ่นโต: ล้าง/มือ? "ดี" <1>|*\\  '), "ปิ่นโต ล้าง มือ ดี 1");
   assert.equal(safeTitle("ปิ่นโต ล้างมือ"), "ปิ่นโต ล้างมือ");
@@ -102,7 +108,7 @@ test("renders a tiny episode", async (t) => {
   const { ep, dir } = setup(t);
   const seen = [];
   const file = await renderEpisode(ep, { ...SIZE, onProgress: (f) => seen.push(f) });
-  assert.equal(file, path.join(dir, "out", "ปิ่นโต ทดสอบ.mp4"));
+  assert.equal(file, path.join(dir, "out", "EP01 ปิ่นโต ทดสอบ.mp4"));
   checkVideo(file);
   const lufs = measure(file);
   assert.ok(Math.abs(lufs + 14) <= 1.5, `loudness ${lufs} ≈ -14 LUFS`);
@@ -110,13 +116,13 @@ test("renders a tiny episode", async (t) => {
   assert.ok(seen.every((f, i) => f >= 0 && f <= 1 && (i === 0 || f >= seen[i - 1])), "progress grows within 0..1");
   assert.equal(seen.at(-1), 1);
   assert.ok(listTracks().find((t) => t.id === "test-silence").lastUsedAt, "music marked used");
-  assert.deepEqual(fs.readdirSync(path.join(dir, "out")), ["ปิ่นโต ทดสอบ.mp4"], "no temp files left behind");
+  assert.deepEqual(fs.readdirSync(path.join(dir, "out")), ["EP01 ปิ่นโต ทดสอบ.mp4"], "no temp files left behind");
 });
 
 test("renders when paths contain spaces and Thai", async (t) => {
   const { ep, dir } = setup(t, { dirName: "คลัง วิดีโอ", title: "ปิ่นโต ล้างมือ" });
   const file = await renderEpisode(ep, SIZE);
-  assert.equal(file, path.join(dir, "out", "ปิ่นโต ล้างมือ.mp4"));
+  assert.equal(file, path.join(dir, "out", "EP01 ปิ่นโต ล้างมือ.mp4"));
   checkVideo(file);
 });
 

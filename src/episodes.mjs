@@ -24,6 +24,31 @@ function stamp(d) {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
+function loadAll() {
+  let names;
+  try {
+    names = fs.readdirSync(episodesDir());
+  } catch {
+    return [];
+  }
+  const out = [];
+  for (const id of names) {
+    try {
+      out.push(loadEpisode(id));
+    } catch {
+      // not an episode folder; skip
+    }
+  }
+  return out;
+}
+
+const numberOf = (ep) => (Number.isInteger(ep.number) && ep.number > 0 ? ep.number : null);
+
+// Highest number among existing episodes + 1 (episodes from before numbering count as 0).
+function nextNumber() {
+  return loadAll().reduce((m, ep) => Math.max(m, numberOf(ep) ?? 0), 0) + 1;
+}
+
 export function createEpisode(idea, story) {
   const now = new Date();
   const base = `ep-${stamp(now)}`;
@@ -32,6 +57,7 @@ export function createEpisode(idea, story) {
   for (const sub of ["img", "voice", "out"]) fs.mkdirSync(path.join(epDir(id), sub), { recursive: true });
   const ep = {
     id,
+    number: nextNumber(),
     createdAt: now.toISOString(),
     idea: structuredClone(idea),
     story: {
@@ -57,22 +83,61 @@ export function saveEpisode(ep) {
 }
 
 export function listEpisodes() {
-  let names;
+  return loadAll()
+    .map((ep) => ({ id: ep.id, number: numberOf(ep), title: ep.story.title, createdAt: ep.createdAt, status: episodeStatus(ep) }))
+    .sort((a, b) =>
+      (b.number ?? 0) - (a.number ?? 0) ||
+      b.createdAt.localeCompare(a.createdAt) ||
+      b.id.localeCompare(a.id, "en", { numeric: true }));
+}
+
+const mtime = (file) => {
   try {
-    names = fs.readdirSync(episodesDir());
+    return fs.statSync(file).mtimeMs;
   } catch {
-    return [];
+    return null;
   }
-  const out = [];
-  for (const id of names) {
-    try {
-      const ep = loadEpisode(id);
-      out.push({ id: ep.id, title: ep.story.title, createdAt: ep.createdAt });
-    } catch {
-      // not an episode folder; skip
+};
+
+// The rendered video: ep.video if its file still exists, else the newest .mp4 in out/.
+function outputTime(ep) {
+  const dir = epDir(ep.id);
+  if (ep.video?.file) {
+    const t = mtime(path.join(dir, ep.video.file));
+    if (t !== null) return t;
+  }
+  let best = null;
+  try {
+    for (const f of fs.readdirSync(path.join(dir, "out"))) {
+      if (!f.toLowerCase().endsWith(".mp4")) continue;
+      const t = mtime(path.join(dir, "out", f));
+      if (t !== null && (best === null || t > best)) best = t;
     }
-  }
-  return out.sort((a, b) => (a.createdAt === b.createdAt ? b.id.localeCompare(a.id, "en", { numeric: true }) : b.createdAt.localeCompare(a.createdAt)));
+  } catch {}
+  return best;
+}
+
+/** Library status in Thai, computed from page states and file times (never stored). */
+export function episodeStatus(ep) {
+  const pages = ep.story?.pages ?? [];
+  const m = pages.length;
+  const images = pages.filter((p) => p.image?.state === "done").length;
+  const voices = pages.filter((p) => p.voice?.state === "done" && p.voice.forText === p.narration).length;
+  if (!images && !voices) return "เขียนเรื่องแล้ว";
+  if (images < m || voices < m) return `ภาพ ${images}/${m} · เสียง ${voices}/${m}`;
+  const out = outputTime(ep);
+  if (out === null) return "พร้อมประกอบ";
+  const dir = epDir(ep.id);
+  const changed = pages
+    .flatMap((p) => [p.image?.file, p.voice?.file])
+    .filter(Boolean)
+    .reduce((t, f) => Math.max(t, mtime(path.join(dir, f)) ?? 0), 0);
+  return out >= changed ? "วิดีโอเสร็จ" : "ต้องประกอบใหม่";
+}
+
+/** Removes the episode folder for good. */
+export function deleteEpisode(id) {
+  fs.rmSync(epDir(id), { recursive: true, force: true });
 }
 
 // n is the 1-based page number (1 = first page). Returns an updated copy; the caller saves it.
