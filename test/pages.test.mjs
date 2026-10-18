@@ -137,3 +137,20 @@ test("non-numeric concurrency falls back to 3", async () => {
   await makeImages(ep, g, { concurrency: "abc" });
   assert.equal(g.calls.max, 3);
 });
+
+test("estimateCost: images + voices + story, in USD and baht", async () => {
+  const { COSTS, estimateCost } = await import("../src/pages.mjs");
+  assert.deepEqual(COSTS, { image: 0.0504, story: 0.012, ttsPer10s: 0.00225, musicTrack: 0.08, thbPerUsd: 33 });
+  const page = (narration, voice) => ({ narration, scene: "s", cast: ["pinto"], image: { state: "todo" }, voice });
+  // 2 pages: one real 20 s voice, one estimated from 110 Thai characters at 11 chars/s = 10 s
+  const ep = { story: { pages: [
+    page("ก".repeat(10), { state: "done", seconds: 20, forText: "ก".repeat(10) }),
+    page("ข".repeat(110), { state: "todo" }),
+  ] } };
+  const c = estimateCost(ep);
+  const usd = 2 * 0.0504 + 0.012 + 3 * 0.00225;
+  assert.ok(Math.abs(c.usd - usd) < 1e-9);
+  assert.ok(Math.abs(c.thb - usd * 33) < 1e-9);
+  // a newly generated music track adds its price; reused tracks are free
+  assert.ok(Math.abs(estimateCost(ep, { newTracks: 1 }).usd - (usd + 0.08)) < 1e-9);
+});

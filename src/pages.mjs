@@ -97,3 +97,21 @@ export async function makeVoices(ep, gemini, { pages, concurrency = 3, onChange 
       },
     ));
 }
+
+/**
+ * Rough per-item prices in USD (Gemini price list, checked 2026-10-18; shown to the user as "ประมาณ").
+ * story: ideas + story calls together; ttsPer10s: per 10 s of narration audio; musicTrack: one new Lyria track.
+ */
+export const COSTS = { image: 0.0504, story: 0.012, ttsPer10s: 0.00225, musicTrack: 0.08, thbPerUsd: 33 };
+const THAI_CHARS_PER_SECOND = 11; // same rate as story.estimateSeconds
+
+/** One full pass for the episode: every page image + every page voice + the story. newTracks = new Lyria tracks. */
+export function estimateCost(ep, { newTracks = 0 } = {}) {
+  const pages = ep.story.pages;
+  const voiceSeconds = pages.reduce((sum, p) => {
+    if (p.voice?.state === "done" && Number.isFinite(p.voice.seconds)) return sum + p.voice.seconds;
+    return sum + [...String(p.narration ?? "")].length / THAI_CHARS_PER_SECOND;
+  }, 0);
+  const usd = pages.length * COSTS.image + COSTS.story + (voiceSeconds / 10) * COSTS.ttsPer10s + newTracks * COSTS.musicTrack;
+  return { usd, thb: usd * COSTS.thbPerUsd };
+}

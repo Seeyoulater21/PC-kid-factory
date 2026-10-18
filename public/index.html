@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kid Factory</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="#/">Kid Factory</a>
+    <span id="fakeBadge" class="badge" hidden>โหมดทดลอง · ไม่เสียเงิน</span>
+    <span class="grow"></span>
+    <a id="keyLink" class="link" href="#/key" hidden>เปลี่ยนคีย์</a>
+  </header>
+  <main id="app"><p class="muted">กำลังเปิด…</p></main>
+
+  <div id="busy" class="overlay" hidden>
+    <div class="card busy-card">
+      <div class="spinner"></div>
+      <div id="busyText" class="busy-text"></div>
+      <div id="busySub" class="muted"></div>
+    </div>
+  </div>
+
+  <div id="msg" class="overlay" hidden>
+    <div class="card msg-card" role="alertdialog" aria-labelledby="msgText">
+      <div class="msg-icon">⚠</div>
+      <div id="msgText" class="msg-text"></div>
+      <button id="msgOk" class="btn">ตกลง</button>
+    </div>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
