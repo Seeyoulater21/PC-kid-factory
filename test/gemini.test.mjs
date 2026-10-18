@@ -30,7 +30,7 @@ function make(responses) {
 
 test("MODELS constants", () => {
   assert.deepEqual(MODELS, {
-    ideas: "gemini-3.8-flash", story: "gemini-4-argon", image: "gemini-nano-banana-2.1",
+    ideas: "gemini-3.8-flash", story: "gemini-3.8-flash", image: "gemini-nano-banana-2.1",
     voice: "gemini-3.8-flash-tts", music: "lyria-3.5",
   });
 });

@@ -96,6 +96,10 @@ export function validateStory(s, { minutes = 5 } = {}) {
   return problems;
 }
 
+/** Narration is read aloud by TTS: drop markdown emphasis markers (*, **, _) and keep the words. */
+export const stripEmphasis = (s) =>
+  s.replace(/(\*\*|\*|_)(?=\S)(.*?\S)\1/g, "$2").replace(/[*_]/g, "");
+
 function normalize(raw) {
   if (!raw || typeof raw !== "object") return raw;
   return {
@@ -108,7 +112,7 @@ function normalize(raw) {
       ? raw.pages.map((p) =>
           p && typeof p === "object"
             ? {
-                narration: str(p.narration),
+                narration: stripEmphasis(str(p.narration)),
                 scene: str(p.scene),
                 cast: Array.isArray(p.cast) ? p.cast.map((id) => str(id).toLowerCase()).filter(Boolean) : [],
               }

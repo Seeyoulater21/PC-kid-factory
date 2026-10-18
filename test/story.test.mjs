@@ -209,6 +209,16 @@ test("writeStory uses the story model and returns a valid story", async () => {
   assert.match(g.calls[0].prompt, /20/);
 });
 
+test("writeStory strips markdown emphasis from narration but keeps the words", async () => {
+  const s = story(16);
+  s.pages[0].narration = "เพื่อนกระโดด *ฟุ่บ!* แล้ว **ปี๊บ!**";
+  s.pages[1].narration = "กบ _ก๊าบ_ ร้องดัง";
+  const g = fakeGemini([s]);
+  const out = await writeStory(g, idea(1), { minutes: 5 });
+  assert.equal(out.pages[0].narration, "เพื่อนกระโดด ฟุ่บ! แล้ว ปี๊บ!");
+  assert.equal(out.pages[1].narration, "กบ ก๊าบ ร้องดัง");
+});
+
 test("writeStory retries once on an invalid story then succeeds", async () => {
   const g = fakeGemini([story(25), story(15)]);
   const s = await writeStory(g, idea(1), {});

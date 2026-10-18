@@ -15,7 +15,7 @@
 - Repo is **PUBLIC**: never commit keys, the friend's channel name, the style-reference book's name/images, or third-party textures. Commit hooks block private words; never bypass them (`--no-verify` forbidden).
 - The Gemini key is stored only in `<dataDir>/config.json`; never logged, never returned by any API route, never in error messages.
 - One AI provider: Gemini Interactions API `POST https://generativelanguage.googleapis.com/v1beta/interactions`, header `x-goog-api-key`.
-- Models (one constant `MODELS` in `src/gemini.mjs`): ideas `gemini-3.8-flash`, story `gemini-4-argon`, image `gemini-nano-banana-2.1`, voice `gemini-3.8-flash-tts`, music `lyria-3.5`.
+- Models (one constant `MODELS` in `src/gemini.mjs`): ideas `gemini-3.8-flash`, story `gemini-3.8-flash`, image `gemini-nano-banana-2.1`, voice `gemini-3.8-flash-tts`, music `lyria-3.5`.
 - Images: `response_format: {type:"image", mime_type:"image/jpeg", aspect_ratio:"16:9", image_size:"2K"}` (verified 2026-10-18: `image/png` is rejected, only `image/jpeg`). Do not validate the key format (current keys do not start with `AIza`).; up to 5 character reference images per call (we send 3 main sheets + up to 2 extra).
 - UI copy in **Thai**; code, comments, commits, docs in English.
 - Picture + narration only: **no text drawn on pages, no subtitles.** Prompts must forbid text/letters in images.

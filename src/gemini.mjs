@@ -1,6 +1,6 @@
 export const MODELS = {
   ideas: "gemini-3.8-flash",
-  story: "gemini-4-argon",
+  story: "gemini-3.8-flash",
   image: "gemini-nano-banana-2.1",
   voice: "gemini-3.8-flash-tts",
   music: "lyria-3.5",
