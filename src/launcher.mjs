@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -94,9 +94,7 @@ async function main() {
   await new Promise((resolve, reject) => { server.once("error", reject); server.listen(picked.port, "127.0.0.1", resolve); });
   if (noWindow) return console.log(`READY ${url}`);
   await openWindow(url);
-  // Window closed: stop the server and any render in progress (ffmpeg children would outlive a plain exit on Windows).
-  spawnSync("taskkill", ["/PID", String(process.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
-  process.exit(0);
+  process.exit(0); // window closed: stop the server (child processes such as ffmpeg end with it on Windows)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(fs.realpathSync(process.argv[1])).href) {
