@@ -131,6 +131,12 @@ to post, without calling the owner.
 4. Assemble: music auto-picked from the library (changeable) → "ประกอบวิดีโอ" with a progress bar →
    ▶ watch / open folder.
 
+### Episode library (owner approved 2026-10-18)
+- Start screen shows "คลังตอน": every episode with an automatic number (EP1, EP2, …), title, status
+  (story written / images N/M · voices N/M / ready to assemble / video done / needs re-assembly), date, open, delete.
+- Delete asks for confirmation first; it cannot be undone.
+- Video file names start with the episode number: `EP01 <title>.mp4`.
+
 ## Releases (owner decided the order)
 
 1. **v1 — on the owner's Mac:** the whole flow from topic to MP4 works. Owner makes 1 test episode.
