@@ -244,10 +244,15 @@ export async function renderEpisode(ep, { onProgress, width = 1920, height = 108
   const music = chooseMusic(ep);
 
   const outDir = epPath("out");
-  fs.mkdirSync(outDir, { recursive: true });
-  const outFile = path.join(outDir, outputName(ep));
-  const part = `${outFile}.part`;
-  const work = fs.mkdtempSync(path.join(os.tmpdir(), "kf-render-"));
+  let outFile, part, work;
+  try {
+    fs.mkdirSync(outDir, { recursive: true });
+    outFile = path.join(outDir, outputName(ep));
+    part = `${outFile}.part`;
+    work = fs.mkdtempSync(path.join(os.tmpdir(), "kf-render-"));
+  } catch (e) {
+    throw thaiError(e);
+  }
   let audioJob = null;
   try {
     const parts = timeline.filter((s) => s.kind === "hold").map((s) => ({ wav: voices[s.page - 1], at: s.voiceAt }));

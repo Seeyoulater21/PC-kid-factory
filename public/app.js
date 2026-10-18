@@ -1,4 +1,4 @@
-// Kid Factory UI: plain JS, hash routes (#/, #/key, #/ep/<id>, #/ep/<id>/video).
+// Kid Factory UI: plain JS, hash routes (#/ library, #/new, #/key, #/ep/<id>, #/ep/<id>/video).
 const $ = (sel, root = document) => root.querySelector(sel);
 const app = $("#app");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -68,6 +68,7 @@ function stopPoll() {
 async function route() {
   stopPoll();
   idle();
+  app.classList.remove("wide");
   try {
     state = await api("GET", "/api/state");
   } catch (e) {
@@ -81,7 +82,8 @@ async function route() {
   if (!state.hasKey || h === "#/key") return keyScreen();
   if ((m = h.match(/^#\/ep\/([^/]+)\/video$/))) return episodeScreen(m[1], "video");
   if ((m = h.match(/^#\/ep\/([^/]+)$/))) return episodeScreen(m[1], "room");
-  return startScreen();
+  if (h === "#/new") return newScreen();
+  return homeScreen();
 }
 window.addEventListener("hashchange", route);
 
@@ -115,25 +117,33 @@ function keyScreen() {
   input.onkeydown = (e) => { if (e.key === "Enter") save(); };
 }
 
-// ---------- 1–2 · start ----------
-function startScreen() {
+// ---------- home · library ----------
+function homeScreen() {
   app.innerHTML = `
-    <div class="cols">
-      <div>
-        <div class="card">
-          <div class="step">1 · พิมพ์หัวข้อ</div>
-          <div class="topic-row">
-            <input id="topic" type="text" placeholder="เช่น สอนเด็กแปรงฟัน" value="${esc(topicText)}">
-            <button id="think" class="btn">คิดเรื่องให้หน่อย</button>
-          </div>
-          <div id="ideas"></div>
-        </div>
-      </div>
-      <div>
-        <div class="card"><h2>เรื่องที่เก็บไว้</h2><div id="savedList"></div></div>
-      </div>
+    <div class="home-head">
+      <h1>คลังตอน</h1>
+      <span class="grow"></span>
+      <a class="btn big" href="#/new">+ สร้างเรื่องใหม่</a>
     </div>
-    <div class="card"><h2>คลังตอน</h2><div id="library"></div></div>`;
+    <div class="card" id="library"></div>`;
+  drawLibrary();
+}
+
+// ---------- new story · 1–2 ----------
+function newScreen() {
+  app.innerHTML = `
+    <a class="back" href="#/">← กลับคลังตอน</a>
+    <div class="new-col">
+      <div class="card">
+        <div class="step">1 · พิมพ์หัวข้อ</div>
+        <div class="topic-row">
+          <input id="topic" type="text" placeholder="เช่น สอนเด็กแปรงฟัน" value="${esc(topicText)}">
+          <button id="think" class="btn">คิดเรื่องให้หน่อย</button>
+        </div>
+        <div id="ideas"></div>
+      </div>
+      <div class="card"><h2>เรื่องที่เก็บไว้</h2><div id="savedList"></div></div>
+    </div>`;
 
   const topic = $("#topic");
   const think = async () => {
@@ -152,7 +162,6 @@ function startScreen() {
 
   drawIdeas();
   drawSaved();
-  drawLibrary();
 }
 
 function drawIdeas() {
@@ -216,7 +225,10 @@ function drawSaved() {
 function drawLibrary() {
   const box = $("#library");
   const list = state.episodes || [];
-  if (!list.length) { box.innerHTML = `<p class="muted">ยังไม่มีตอน เริ่มจากพิมพ์หัวข้อด้านบน</p>`; return; }
+  if (!list.length) {
+    box.innerHTML = `<div class="empty"><p>ยังไม่มีตอนเลย กด + สร้างเรื่องใหม่ เพื่อเริ่มตอนแรก</p><a class="btn big" href="#/new">+ สร้างเรื่องใหม่</a></div>`;
+    return;
+  }
   box.innerHTML = `
     <table class="lib">
       <thead><tr><th>ตอน</th><th>ชื่อเรื่อง</th><th>สถานะ</th><th>วันที่</th><th></th></tr></thead>
@@ -269,18 +281,53 @@ async function episodeScreen(id, tab) {
   wasRunning = {};
   for (const k of ["images", "voices", "render"]) if (job[k]?.running) wasRunning[k] = true;
 
+  app.classList.add("wide");
+  curTab = tab;
   app.innerHTML = `
-    <div class="ep-head">
-      <span class="step" style="margin:0">${epLabel(ep.number)}</span>
-      <h1>${esc(ep.story.title)}</h1>
-      <nav class="tabs">
-        <a class="tab ${tab === "room" ? "on" : ""}" href="#/ep/${encodeURIComponent(id)}">3 · ห้องทำงาน</a>
-        <a class="tab ${tab === "video" ? "on" : ""}" href="#/ep/${encodeURIComponent(id)}/video">4 · ประกอบวิดีโอ</a>
-      </nav>
-    </div>
-    <div class="card" id="screen"></div>`;
+    <div class="ep-layout">
+      <aside id="side" class="side"></aside>
+      <div class="card" id="screen"></div>
+    </div>`;
+  drawSide();
   if (tab === "room") roomShell(); else videoShell();
   if (anyRunning()) startPoll();
+}
+
+let curTab = "room";
+
+// left menu inside an episode: where am I, go back / forward any time
+function drawSide() {
+  const box = $("#side");
+  if (!box || !ep) return;
+  const id = encodeURIComponent(ep.id);
+  const pages = ep.story.pages;
+  const imgs = pages.filter((p) => p.image.state === "done").length;
+  const voices = pages.length - ep.staleVoices.length;
+  const roomDone = imgs === pages.length && voices === pages.length;
+  const rendering = Boolean(job.render?.running);
+  const status = ep.status ?? "";
+  const videoSub = rendering ? "กำลังประกอบ…" : status === "วิดีโอเสร็จ" ? "วิดีโอเสร็จ ✓" : status === "ต้องประกอบใหม่" ? "ต้องประกอบใหม่" : "ยังไม่ได้ประกอบ";
+  const videoDone = !rendering && status === "วิดีโอเสร็จ";
+  const steps = [
+    { tab: "room", href: `#/ep/${id}`, name: "ห้องทำงาน", sub: `ภาพ ${imgs}/${pages.length} · เสียง ${voices}/${pages.length}`, done: roomDone },
+    { tab: "video", href: `#/ep/${id}/video`, name: "ประกอบวิดีโอ", sub: videoSub, done: videoDone },
+  ];
+  const at = curTab === "video" ? 1 : 0;
+  const prev = at === 0 ? "#/" : steps[at - 1].href;
+  const next = at === 0 ? steps[1].href : "#/";
+  box.innerHTML = `
+    <a class="back" href="#/">← คลังตอน</a>
+    <div class="side-ep"><span class="badge-ep">${epLabel(ep.number)}</span><div class="side-title">${esc(ep.story.title)}</div></div>
+    <nav class="steps">${steps.map((st, i) => `
+      <a class="stp ${i === at ? "on" : ""} ${st.done ? "done" : ""}" href="${st.href}" ${i === at ? 'aria-current="step"' : ""}>
+        <span class="num">${st.done ? "✓" : i + 1}</span>
+        <span><b>${st.name}</b><small>${esc(st.sub)}</small></span>
+      </a>`).join("")}
+    </nav>
+    <div class="side-nav">
+      <a class="btn g small" href="${prev}">← ย้อนกลับ</a>
+      <a class="btn small" href="${next}">${at === 0 ? "ไปต่อ →" : "กลับคลังตอน"}</a>
+    </div>`;
 }
 
 const anyRunning = () => ["images", "voices", "render"].some((k) => job[k]?.running);
@@ -338,6 +385,7 @@ async function startJob(kind, body = {}) {
 }
 
 function refresh() {
+  drawSide();
   if ($("#roomPages")) roomUpdate();
   if ($("#videoBox")) videoUpdate();
 }
@@ -363,13 +411,11 @@ function infoLine() {
 
 function roomShell() {
   $("#screen").innerHTML = `
-    <div class="step">3 · ดูบท แก้ได้ แล้วเจน</div>
+    <div class="step">1 · ดูบท แก้ได้ แล้วเจน</div>
     <div class="row">
       <button id="allImages" class="btn">เจนภาพทั้งหมด</button>
       <button id="allVoices" class="btn">เจนเสียงทั้งหมด</button>
       <span id="info" class="info"></span>
-      <span class="grow"></span>
-      <a id="toVideo" class="btn g" href="#/ep/${encodeURIComponent(ep.id)}/video">ไปประกอบวิดีโอ →</a>
     </div>
     <div id="jobs" class="jobs"></div>
     <div class="room">
@@ -427,6 +473,7 @@ function loadPage() {
 }
 
 function roomUpdate() {
+  drawSide();
   const pages = ep.story.pages;
   $("#info").innerHTML = infoLine();
   const imgRun = Boolean(job.images?.running), voiceRun = Boolean(job.voices?.running), renderRun = Boolean(job.render?.running);
@@ -437,8 +484,6 @@ function roomUpdate() {
   all.textContent = imgRun ? "กำลังเจนภาพ…" : imagesLeft ? "เจนภาพทั้งหมด" : "✓ ภาพครบแล้ว";
   allV.disabled = voiceRun || renderRun || !voicesLeft;
   allV.textContent = voiceRun ? "กำลังเจนเสียง…" : voicesLeft ? "เจนเสียงทั้งหมด" : "✓ เสียงครบแล้ว";
-  const ready = !imagesLeft && !voicesLeft;
-  $("#toVideo").className = ready ? "btn" : "btn g";
 
   // jobs
   const bars = [];
@@ -497,7 +542,7 @@ let tracks = null;
 
 async function videoShell() {
   $("#screen").innerHTML = `
-    <div class="step">4 · ประกอบเป็นวิดีโอ</div>
+    <div class="step">2 · ประกอบเป็นวิดีโอ</div>
     <div class="music-row">
       <span>เพลงประกอบ:</span>
       <select id="music"></select>

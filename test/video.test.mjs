@@ -191,3 +191,15 @@ test("a raw fs error with a Thai path is not leaked: generic Thai message, raw t
     return true;
   });
 });
+
+test("a folder that cannot be created fails with the generic Thai message; raw text only in detail", async (t) => {
+  const { ep, dir } = setup(t);
+  fs.rmSync(path.join(dir, "out"), { recursive: true, force: true });
+  fs.writeFileSync(path.join(dir, "out"), "not a folder"); // mkdir out/ now fails with a Thai path in the error
+  await assert.rejects(renderEpisode(ep, SIZE), (e) => {
+    assert.equal(e.message, "สร้างวิดีโอไม่สำเร็จ");
+    assert.equal(e.thai, true);
+    assert.ok(/EEXIST|ENOTDIR/.test(e.detail), `detail: ${e.detail}`);
+    return true;
+  });
+});
