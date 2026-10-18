@@ -1,0 +1,90 @@
+<!-- Look reference for the page-turn the owner approved (2026-10-18). Throwaway prototype, not app code. -->
+<meta charset="utf-8">
+<style>
+  .desk { position: relative; width: 100%; max-width: 960px; margin: 0 auto; aspect-ratio: 16/9;
+          background: radial-gradient(ellipse at 50% 40%, #4a3a2c, #241a12); border-radius: 10px; overflow: hidden; }
+  /* the book block: page stack edges give thickness */
+  .book { position: absolute; left: 4%; right: 4%; top: 6%; bottom: 6%; }
+  .stack { position: absolute; inset: 0; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/><feColorMatrix values='0 0 0 0 .86 0 0 0 0 .85 0 0 0 0 .83 0 0 0 .5 .5'/></filter><rect width='100%' height='100%' fill='%23e4e2de'/><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); border-radius: 2px 6px 6px 2px;
+           box-shadow: 0 18px 40px rgba(0,0,0,.55); }
+  .stack::before, .stack::after { content: ""; position: absolute; top: 3px; bottom: -3px; right: -6px; width: 8px;
+           background: repeating-linear-gradient(90deg, #e9e6df 0 1px, #b9b4aa 1px 2px); border-radius: 0 4px 4px 0; }
+  .stack::after { top: auto; left: 3px; right: -6px; bottom: -6px; height: 7px; width: auto;
+           background: repeating-linear-gradient(180deg, #e9e6df 0 1px, #b9b4aa 1px 2px); border-radius: 0 0 4px 4px; }
+  .page { position: absolute; inset: 0; overflow: hidden; }
+  .art { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+         font-size: 84px; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .art small { font: 600 18px system-ui; margin-top: 8px; }
+  .art .z { transition: transform 6s linear; }
+  /* printed-on-paper look: texture multiplied over the picture */
+  .page::after { content: ""; position: absolute; inset: 0; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/><feColorMatrix values='0 0 0 0 .86 0 0 0 0 .85 0 0 0 0 .83 0 0 0 .5 .5'/></filter><rect width='100%' height='100%' fill='%23e4e2de'/><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+                 mix-blend-mode: multiply; opacity: .55; pointer-events: none; }
+  .page::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6%; z-index: 2; pointer-events: none;
+                  background: linear-gradient(90deg, rgba(0,0,0,.28), transparent); } /* spine shade */
+  .c1 { background: linear-gradient(160deg, #ffd56b, #ff9a6b); }
+  .c2 { background: linear-gradient(160deg, #8fd3ff, #6b8cff); }
+  .c3 { background: linear-gradient(160deg, #a8e6a1, #3fb68b); }
+  .c4 { background: linear-gradient(160deg, #ffb3d1, #c38bff); }
+  /* back of the turning page: plain thick paper with curl lighting */
+  .flap { position: absolute; top: 0; bottom: 0; z-index: 5; background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/><feColorMatrix values='0 0 0 0 .86 0 0 0 0 .85 0 0 0 0 .83 0 0 0 .5 .5'/></filter><rect width='100%' height='100%' fill='%23e4e2de'/><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); display: none; }
+  .flap::after { content: ""; position: absolute; inset: 0;
+                 background: linear-gradient(90deg, rgba(0,0,0,.18), rgba(255,255,255,.35) 55%, rgba(0,0,0,.22)); }
+  .cast { position: absolute; top: 0; bottom: 0; z-index: 4; display: none; pointer-events: none; }
+  .speeds { display: flex; gap: 8px; justify-content: center; margin: 14px 0 4px; }
+  .speeds button { font: 600 13px system-ui; padding: 6px 14px; border-radius: 16px; border: 1px solid #888; background: transparent; color: inherit; cursor: pointer; }
+  .speeds button.on { background: #e8a33d; border-color: #e8a33d; color: #222; }
+  .note { font-size: 13px; opacity: .75; text-align: center; }
+</style>
+
+<h2>พลิกหน้าหนังสือ v2 · ช้าลง + กระดาษหนาขึ้น</h2>
+<p class="subtitle">เห็นด้านหลังกระดาษตอนพลิก มีสันกระดาษซ้อนกันที่ขอบขวาและขอบล่าง และมีลายกระดาษทับบนภาพ ลองกดเปลี่ยนความเร็วดูได้</p>
+
+<div class="desk"><div class="book"><div class="stack"></div><div id="stage"></div></div></div>
+
+<div class="speeds">
+  <button data-ms="1500" class="on">พลิก 1.5 วิ</button>
+</div>
+<p class="note">ภาพในตัวอย่างค้างไว้ 5 วินาที (ของจริงประมาณ 15 วินาที) · ลายกระดาษเป็นแบบที่สร้างเอง (ตัวอย่างหยาบ)</p>
+
+<script>
+(function () {
+  const scenes = [["c1","🧒👧","ฉาก 1 · ตื่นนอน"],["c2","🪥✨","ฉาก 2 · แปรงฟัน"],["c3","🫧🖐️","ฉาก 3 · ล้างมือ"],["c4","😁🌞","ฉาก 4 · พร้อมไปโรงเรียน"]];
+  const stage = document.getElementById("stage");
+  let flipMs = 1500, n = 0;
+  document.querySelectorAll(".speeds button").forEach(b => b.onclick = () => {
+    document.querySelectorAll(".speeds button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on"); flipMs = +b.dataset.ms;
+  });
+  const mk = (i) => { const [c,e,t] = scenes[i % scenes.length]; const p = document.createElement("div");
+    p.className = "page"; p.innerHTML = `<div class="art ${c}"><div class="z">${e}</div><small>${t}</small></div>`; return p; };
+  const flap = document.createElement("div"); flap.className = "flap";
+  const cast = document.createElement("div"); cast.className = "cast";
+  let cur = mk(0); stage.append(cur, cast, flap);
+  const zoom = (p) => requestAnimationFrame(() => p.querySelector(".z").style.transform = "scale(1.12)");
+  zoom(cur);
+
+  function turn() {
+    const next = mk(++n); stage.insertBefore(next, cur);
+    const W = stage.getBoundingClientRect().width;
+    flap.style.display = cast.style.display = "block";
+    const t0 = performance.now();
+    const ease = (x) => x < .5 ? 2*x*x : 1 - Math.pow(-2*x + 2, 2) / 2;
+    (function step(now) {
+      const k = Math.min(1, (now - t0) / flipMs), s = ease(k) * W;    // s = how far the fold has travelled
+      const fold = W - s, edge = W - 2 * s;                              // fold line and the page's lifted edge
+      const left = Math.max(0, edge);
+      cur.style.clipPath = `inset(0 ${W - left}px 0 0)`;                 // old picture still lying flat
+      flap.style.left = left + "px"; flap.style.width = Math.max(0, fold - left) + "px";
+      const lift = Math.sin(Math.PI * k);                                // page highest mid-turn
+      flap.style.boxShadow = `${-14*lift}px 0 ${24*lift}px rgba(0,0,0,${.35*lift})`;
+      cast.style.left = fold + "px"; cast.style.width = 60 * (0.3 + lift) + "px";
+      cast.style.background = `linear-gradient(90deg, rgba(0,0,0,${.35*lift + .05}), transparent)`; // shadow on new page
+      if (k < 1) return requestAnimationFrame(step);
+      cur.remove(); cur = next; flap.style.display = cast.style.display = "none";
+      zoom(cur); setTimeout(turn, 5000);
+    })(t0);
+  }
+  setTimeout(turn, 3000);
+})();
+</script>
+
