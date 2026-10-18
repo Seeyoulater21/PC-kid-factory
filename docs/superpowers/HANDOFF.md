@@ -1,8 +1,11 @@
 # Kid Factory v1 handoff
 
 ## Status
-v1 code is complete: tasks 1-10 plus the Mac launcher (`start.command`). The owner's first real
-episode (Task 11 steps 2-4) is still to be made and judged.
+v0.1.0 released 2026-10-18 (macOS MVP). Installed on the owner's Mac at `/Applications/KidFactory`
+(open `start.command` there). Owner data lives outside the code (`~/Documents/KidFactory`).
+Real-API smoke test passed (one page image + voice through the shipped code). Since the first
+review the home screen became the episode library ("+ สร้างเรื่องใหม่" → new-story screen) and each
+episode has a left sidebar (steps + back/next).
 
 ## Built
 - Gemini client (ideas, story, images, voice, music) with Thai error messages and retry rules
@@ -20,10 +23,17 @@ episode (Task 11 steps 2-4) is still to be made and judged.
 - Show name: ปิ่นโตเก่งขึ้นทุกวัน
 - Episode library: episodes are saved and listed in the app
 
-## Next
-- Owner makes the first real episode and reports on story, character consistency, page turn, levels, length
-- Real outro clip (placeholder in use)
-- v2: Windows installer and self-update
+## Next (GitHub issues)
+- #1 Windows PC version — the real target is the friend's PC
+- #2 In-app update button (friend updates by themselves after a fix is released)
+- #3 Real outro clip (placeholder in use)
+- #4 Owner check of the first real episode (EP1)
+- #5 Deferred small fixes from the v1 reviews (summary of the list below)
+
+## How to ship a fix
+Bump `version` in package.json, commit, push, `gh release create v<version>` with a source zip
+(`git archive --format=zip -o KidFactory-<version>.zip HEAD`), then reinstall `/Applications/KidFactory`
+(unzip + `npm ci`). Once #2 exists the app updates itself from the release.
 
 ## Deferred minors
 - Gemini: free-tier/quota regexes may treat transient 429s as "credit"; `missing()` may mislabel empty as refused; timeout shows the "no internet" text
