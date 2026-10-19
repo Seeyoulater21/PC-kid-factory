@@ -197,6 +197,25 @@ test("second images job returns 409; job reports progress and finishes", async (
   assert.ok(disk.story.pages.every((p) => p.image.state === "done" && p.voice.state === "done"));
 });
 
+test("pick a take: switches the page's image, refused while that kind is running, bad take is 400", async (t) => {
+  const { api } = await start(t, { gemini: fakeGemini({ slow: 40 }) });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  for (let i = 0; i < 2; i++) {
+    await api("POST", `/api/episodes/${id}/images`, { pages: [1] });
+    await waitJob(api, id, "images");
+  }
+  const r = await api("POST", `/api/episodes/${id}/pages/1/pick`, { kind: "image", take: 1 });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.story.pages[0].image.file, "img/p01.jpg");
+  assert.equal(r.json.story.pages[0].imageTakes.length, 2);
+  assert.equal(loadEpisode(id).story.pages[0].image.file, "img/p01.jpg");
+  assert.equal((await api("POST", `/api/episodes/${id}/pages/1/pick`, { kind: "image", take: 3 })).status, 400);
+  assert.equal((await api("POST", `/api/episodes/${id}/pages/1/pick`, { kind: "x", take: 1 })).status, 400);
+  await api("POST", `/api/episodes/${id}/images`, { pages: [2] });
+  assert.equal((await api("POST", `/api/episodes/${id}/pages/1/pick`, { kind: "image", take: 2 })).status, 409);
+  await waitJob(api, id, "images");
+});
+
 test("media route serves episode files with ranges and blocks ../ traversal", async (t) => {
   const { api, base, root } = await start(t);
   const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });

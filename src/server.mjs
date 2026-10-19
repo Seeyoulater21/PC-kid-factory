@@ -14,7 +14,7 @@ import {
   createEpisode, loadEpisode, saveEpisode, listEpisodes, editNarration, deleteEpisode, episodeStatus,
   saveIdeas, listSavedIdeas, removeSavedIdea,
 } from "./episodes.mjs";
-import { makeImages, makeVoices, staleVoices, estimateCost } from "./pages.mjs";
+import { makeImages, makeVoices, staleVoices, estimateCost, pickTake } from "./pages.mjs";
 import { listTracks } from "./music.mjs";
 import { chooseMusic } from "./render/video.mjs";
 import { buildTimeline, timelineSeconds, TIMING } from "./timeline.mjs";
@@ -314,6 +314,19 @@ export function createServer(opts = {}) {
         if (page.voice?.state !== "working") page.voice = next.voice;
         saveEpisode(ep);
       }
+      return view(ep);
+    }],
+    ["POST", /^\/api\/episodes\/([^/]+)\/pages\/(\d+)\/pick$/, (m, body) => {
+      const ep = getEp(m[1]);
+      const kind = body.kind;
+      if ((kind !== "image" && kind !== "voice") || !Number.isInteger(body.take)) throw new HttpError(400, T.badData);
+      if (running(ep.id, `${kind}s`) || running(ep.id, "render")) throw new HttpError(409, T.busy);
+      try {
+        pickTake(ep, Number(m[2]), kind, body.take);
+      } catch {
+        throw new HttpError(400, T.badData);
+      }
+      saveEpisode(ep);
       return view(ep);
     }],
     ["POST", /^\/api\/episodes\/([^/]+)\/(images|voices)$/, (m, body) => {

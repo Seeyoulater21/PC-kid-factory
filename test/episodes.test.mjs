@@ -183,3 +183,36 @@ test("episodeStatus finds a rendered file in out/ even without ep.video", () => 
   fs.writeFileSync(path.join(dir, "out", "EP01 เรื่อง.mp4"), "x");
   assert.equal(episodeStatus(ep), "วิดีโอเสร็จ");
 });
+
+test("an episode from before takes: its done image and voice become take 1", () => {
+  const d = tmp();
+  const ep = createEpisode(sample.idea, { ...sample.story, pages: sample.story.pages.slice(0, 2) });
+  ep.story.pages[0].image = { state: "done", file: "img/p01.jpg" };
+  ep.story.pages[0].voice = { state: "done", file: "voice/p01.wav", seconds: 1, forText: "x" };
+  for (const p of ep.story.pages) { delete p.imageTakes; delete p.voiceTakes; }
+  saveEpisode(ep);
+  const p = loadEpisode(ep.id).story.pages;
+  assert.deepEqual(p[0].imageTakes, [{ file: "img/p01.jpg" }]);
+  assert.deepEqual(p[0].voiceTakes, [{ file: "voice/p01.wav", seconds: 1, forText: "x" }]);
+  assert.deepEqual(p[1].imageTakes, []);
+  assert.deepEqual(p[1].voiceTakes, []);
+});
+
+test("episodeStatus: picking another take after the render asks for a new render", () => {
+  const d = tmp();
+  const ep = createEpisode(sample.idea, { ...sample.story, pages: sample.story.pages.slice(0, 1) });
+  const dir = path.join(d, "episodes", ep.id);
+  const old = new Date(Date.now() - 60_000);
+  for (const f of ["img/p01.jpg", "voice/p01.wav"]) {
+    fs.writeFileSync(path.join(dir, f), "x");
+    fs.utimesSync(path.join(dir, f), old, old);
+  }
+  const p = ep.story.pages[0];
+  p.image = { state: "done", file: "img/p01.jpg" };
+  p.voice = { state: "done", file: "voice/p01.wav", seconds: 1, forText: p.narration };
+  fs.writeFileSync(path.join(dir, "out", "EP01 x.mp4"), "x");
+  ep.video = { file: "out/EP01 x.mp4" };
+  assert.equal(episodeStatus(ep), "วิดีโอเสร็จ");
+  p.image.pickedAt = Date.now() + 1000;
+  assert.equal(episodeStatus(ep), "ต้องประกอบใหม่");
+});

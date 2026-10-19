@@ -68,12 +68,23 @@ function persist(ep, onChange) {
   try { onChange?.(ep); } catch { /* UI callback trouble */ }
 }
 
+// Take k of page n: p03.jpg is take 1, then p03-2.jpg, p03-3.jpg… An earlier take is never overwritten.
+function takeFile(ep, n, dir, ext, page, key) {
+  for (let k = (page[`${key}Takes`]?.length ?? 0) + 1; ; k++) {
+    const file = `${dir}/p${pad(n)}${k > 1 ? `-${k}` : ""}.${ext}`;
+    if (!fs.existsSync(epFile(ep, file))) return file;
+  }
+}
+
+// Every finished take is kept in page.imageTakes / page.voiceTakes; page.image / page.voice is the one in use.
 async function step(ep, n, key, onChange, call, onDone) {
   const page = ep.story.pages[n - 1];
   page[key] = { state: "working" };
   persist(ep, onChange);
   try {
-    page[key] = { state: "done", ...(await onDone(await call(page))) };
+    const take = await onDone(await call(page));
+    (page[`${key}Takes`] ??= []).push(take);
+    page[key] = { state: "done", ...take };
   } catch (e) {
     page[key] = { state: "error", error: errText(e, key) };
   } finally {
@@ -91,7 +102,7 @@ export async function makeImages(ep, gemini, { pages, concurrency = 3, onChange 
       ep, n, "image", onChange,
       (page) => imageWithRetry(gemini, imagePrompt(page, ep.story, undefined, cast), refs),
       (bytes) => {
-        const file = `img/p${pad(n)}.jpg`;
+        const file = takeFile(ep, n, "img", "jpg", ep.story.pages[n - 1], "image");
         fs.mkdirSync(path.dirname(epFile(ep, file)), { recursive: true });
         fs.writeFileSync(epFile(ep, file), bytes);
         return { file };
@@ -112,12 +123,22 @@ export async function makeVoices(ep, gemini, { pages, concurrency = 3, onChange 
         return gemini.speech(text, { voice: cast.voice, style: cast.voiceStyle }).then((wav) => ({ wav, text }));
       },
       ({ wav, text }) => {
-        const file = `voice/p${pad(n)}.wav`;
+        const file = takeFile(ep, n, "voice", "wav", ep.story.pages[n - 1], "voice");
         fs.mkdirSync(path.dirname(epFile(ep, file)), { recursive: true });
         fs.writeFileSync(epFile(ep, file), wav);
         return { file, seconds: wavSeconds(wav), forText: text };
       },
     ));
+}
+
+/** Use take number `take` (1 = first) of page n's image or voice again. Changes ep in place; the caller saves it. */
+export function pickTake(ep, n, key, take) {
+  const page = ep.story.pages[n - 1];
+  const t = key === "image" || key === "voice" ? page?.[`${key}Takes`]?.[take - 1] : undefined;
+  if (!t) throw new Error(`No take ${take} for page ${n}`);
+  page[key] = { state: "done", ...t, pickedAt: Date.now() };
+  // a voice take matches the text it was read from: bring that text back
+  if (key === "voice" && typeof t.forText === "string") page.narration = t.forText;
 }
 
 /**

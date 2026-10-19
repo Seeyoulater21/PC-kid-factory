@@ -62,7 +62,9 @@ export function createEpisode(idea, story) {
     idea: structuredClone(idea),
     story: {
       ...structuredClone(story),
-      pages: story.pages.map((p) => ({ ...structuredClone(p), image: { state: "todo" }, voice: { state: "todo" } })),
+      pages: story.pages.map((p) => ({
+        ...structuredClone(p), image: { state: "todo" }, voice: { state: "todo" }, imageTakes: [], voiceTakes: [],
+      })),
     },
   };
   saveEpisode(ep);
@@ -71,9 +73,16 @@ export function createEpisode(idea, story) {
 
 export function loadEpisode(id) {
   const ep = JSON.parse(fs.readFileSync(path.join(epDir(id), "episode.json"), "utf8"));
-  // A "working" state means the app died mid-job; start over for that item.
   for (const p of ep.story.pages) {
-    for (const k of ["image", "voice"]) if (p[k]?.state === "working") p[k] = { state: "todo" };
+    for (const k of ["image", "voice"]) {
+      // A "working" state means the app died mid-job; start over for that item.
+      if (p[k]?.state === "working") p[k] = { state: "todo" };
+      // Episodes from before takes were kept: the image or voice in use becomes take 1.
+      if (!Array.isArray(p[`${k}Takes`])) {
+        const { state, error, pickedAt, ...take } = p[k] ?? {};
+        p[`${k}Takes`] = state === "done" && take.file ? [take] : [];
+      }
+    }
   }
   return ep;
 }
@@ -132,7 +141,9 @@ export function episodeStatus(ep) {
     .flatMap((p) => [p.image?.file, p.voice?.file])
     .filter(Boolean)
     .reduce((t, f) => Math.max(t, mtime(path.join(dir, f)) ?? 0), 0);
-  return out >= changed ? "วิดีโอเสร็จ" : "ต้องประกอบใหม่";
+  // picking an older take changes the video too, though its file is old
+  const picked = pages.reduce((t, p) => Math.max(t, p.image?.pickedAt ?? 0, p.voice?.pickedAt ?? 0), 0);
+  return out >= Math.max(changed, picked) ? "วิดีโอเสร็จ" : "ต้องประกอบใหม่";
 }
 
 /** Removes the episode folder for good. */

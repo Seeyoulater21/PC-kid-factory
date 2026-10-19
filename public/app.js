@@ -488,6 +488,7 @@ function roomShell() {
       <div id="roomPages" class="pages"></div>
       <div>
         <div id="pic" class="pic"></div>
+        <div id="takes" class="takes"></div>
         <div class="narr-label"><span id="pageTitle"></span><span id="savedNote" class="saved-note"></span></div>
         <textarea id="narr"></textarea>
         <div class="row" style="margin-top:8px">
@@ -601,6 +602,36 @@ function roomUpdate() {
     : p.voice.state === "done" ? `✓ เสียง ${p.voice.seconds?.toFixed(1)} วินาที` : "ยังไม่มีเสียง";
   const imageText = p.image.state === "done" ? "✓ ภาพ" : p.image.state === "working" ? "⏳ ภาพ" : p.image.state === "error" ? `<span class="warn">⚠ ภาพ</span>` : "ยังไม่มีภาพ";
   $("#pageState").innerHTML = `${imageText} · ${voiceText}`;
+  drawTakes(p, imgRun || renderRun, voiceRun || renderRun);
+}
+
+// every image and voice made for this page; click a number to use that one (a voice also plays)
+function drawTakes(p, imgBusy, voiceBusy) {
+  const row = (kind, label, takes, busyNow) => {
+    if (takes.length < 2) return "";
+    const cur = p[kind].state === "done" ? p[kind].file : null;
+    return `<span>${label}${takes.map((t, i) => {
+      const old = kind === "voice" && t.forText !== p.narration ? ` title="อ่านจากคำเล่าเดิม: ${esc(t.forText)}"` : "";
+      return `<button class="take ${t.file === cur ? "on" : ""}" data-kind="${kind}" data-take="${i + 1}"${old} ${busyNow ? "disabled" : ""}>${i + 1}</button>`;
+    }).join("")}</span>`;
+  };
+  const box = $("#takes");
+  box.innerHTML = row("image", "ภาพ", p.imageTakes ?? [], imgBusy) + row("voice", "เสียง", p.voiceTakes ?? [], voiceBusy);
+  box.querySelectorAll(".take").forEach((b) => { b.onclick = () => pickTake(b.dataset.kind, Number(b.dataset.take)); });
+}
+
+async function pickTake(kind, take) {
+  if (kind === "voice") await saveNarration();
+  const n = sel;
+  try {
+    ep = await api("POST", `/api/episodes/${encodeURIComponent(ep.id)}/pages/${n}/pick`, { kind, take });
+  } catch (e) { return showError(e); }
+  if (sel !== n) return roomUpdate();
+  if (kind === "voice") {
+    loadPage(); // the voice brings back the text it was read from
+    playVoice();
+  }
+  roomUpdate();
 }
 
 // ---------- 4 · assemble ----------

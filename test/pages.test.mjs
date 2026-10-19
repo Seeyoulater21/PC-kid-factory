@@ -6,7 +6,7 @@ import path from "node:path";
 import { createEpisode, loadEpisode, editNarration } from "../src/episodes.mjs";
 import { GeminiError } from "../src/gemini.mjs";
 import { writeWav, wavSeconds } from "../src/audio.mjs";
-import { makeImages, makeVoices, staleVoices } from "../src/pages.mjs";
+import { makeImages, makeVoices, staleVoices, pickTake } from "../src/pages.mjs";
 
 const sample = JSON.parse(fs.readFileSync(new URL("../docs/sample-story.json", import.meta.url), "utf8"));
 
@@ -191,4 +191,63 @@ test("non-refusal image errors are not retried", async () => {
   const out = await makeImages(ep, g, { pages: [1] });
   assert.equal(n, 1);
   assert.equal(out.story.pages[0].image.error, "Gemini ไม่ว่าง ลองใหม่อีกครั้ง");
+});
+
+const epPath = (ep, rel) => path.join(process.env.KIDFACTORY_DATA, "episodes", ep.id, rel);
+
+test("a new image or voice adds a take; every take stays on disk; the newest is used", async () => {
+  const ep = ep3(setup());
+  const g = fake();
+  await makeImages(ep, g, { pages: [1] });
+  await makeImages(ep, g, { pages: [1] });
+  await makeImages(ep, g, { pages: [1] });
+  const p = ep.story.pages[0];
+  assert.deepEqual(p.imageTakes.map((t) => t.file), ["img/p01.jpg", "img/p01-2.jpg", "img/p01-3.jpg"]);
+  for (const t of p.imageTakes) assert.ok(fs.existsSync(epPath(ep, t.file)));
+  assert.equal(p.image.state, "done");
+  assert.equal(p.image.file, "img/p01-3.jpg");
+  await makeVoices(ep, g, { pages: [2] });
+  await makeVoices(ep, g, { pages: [2] });
+  const q = ep.story.pages[1];
+  assert.deepEqual(q.voiceTakes.map((t) => t.file), ["voice/p02.wav", "voice/p02-2.wav"]);
+  assert.equal(q.voiceTakes[1].forText, q.narration);
+  assert.equal(q.voice.file, "voice/p02-2.wav");
+  assert.deepEqual(loadEpisode(ep.id).story.pages[0].imageTakes.length, 3);
+});
+
+test("a failed new take keeps the old takes", async () => {
+  const ep = ep3(setup());
+  await makeImages(ep, fake(), { pages: [1] });
+  const g = { image: async () => { throw new GeminiError("refused", "x", "ภาพถูกปฏิเสธ"); } };
+  await makeImages(ep, g, { pages: [1] });
+  const p = ep.story.pages[0];
+  assert.equal(p.image.state, "error");
+  assert.equal(p.imageTakes.length, 1);
+  pickTake(ep, 1, "image", 1);
+  assert.equal(p.image.state, "done");
+  assert.equal(p.image.file, "img/p01.jpg");
+});
+
+test("pickTake: switch back to an older take; a voice take brings back the text it was read from", async () => {
+  const ep = ep3(setup());
+  const g = fake();
+  await makeImages(ep, g, { pages: [1] });
+  await makeImages(ep, g, { pages: [1] });
+  pickTake(ep, 1, "image", 1);
+  assert.equal(ep.story.pages[0].image.file, "img/p01.jpg");
+  assert.ok(Number.isFinite(ep.story.pages[0].image.pickedAt));
+  await makeVoices(ep, g, { pages: [1] });
+  const first = ep.story.pages[0].narration;
+  const edited = editNarration(ep, 1, "ข้อความใหม่");
+  await makeVoices(edited, g, { pages: [1] });
+  const p = edited.story.pages[0];
+  assert.equal(p.voiceTakes.length, 2);
+  pickTake(edited, 1, "voice", 1);
+  assert.equal(p.voice.file, "voice/p01.wav");
+  assert.equal(p.narration, first);
+  assert.deepEqual(staleVoices(edited), [2, 3]);
+  assert.throws(() => pickTake(edited, 1, "voice", 3));
+  assert.throws(() => pickTake(edited, 1, "voice", 0));
+  assert.throws(() => pickTake(edited, 9, "image", 1));
+  assert.throws(() => pickTake(edited, 1, "music", 1));
 });
