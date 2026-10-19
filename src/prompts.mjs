@@ -1,5 +1,5 @@
 // Prompt builders: the creative heart of Kid Factory.
-// Stories must be FUN first: the habit rides on a small adventure, never a lecture.
+// Stories are plain everyday life: one ordinary routine that shows the habit as clear, copyable steps.
 import fs from "node:fs";
 
 const asset = (rel) => new URL(`../assets/${rel}`, import.meta.url);
@@ -68,28 +68,29 @@ export const STORY_SCHEMA = {
   required: ["title", "mood", "sideCharacters", "pages"],
 };
 
-const CAST_BRIEF = `- น้องปิ่นโต (id "pinto"): a cheerful, curious, brave girl of about 6. She leads the story and she is the one who has the clever idea. Narration calls her "ปิ่นโต".
-- Her best friend (id "friend"): a boy of about 6. He has NO NAME. Never give him a name or a nickname. Narration calls him only "เพื่อน" or "เพื่อนของปิ่นโต"; in dialogue Pinto calls him "เพื่อน" too. He is a bit silly and easily excited, a great partner for jokes.
-- The cat (id "cat"): Pinto's small black cat with a red scarf. Call it "แมวดำ" or "เจ้าแมวดำ"; never invent another name. It never talks in words. It says "เมี้ยว" and acts: pounces, hides, steals things, gets into funny trouble, and often finds the clue.
+const CAST_BRIEF = `- น้องปิ่นโต (id "pinto"): a cheerful, kind girl of about 6. She leads the story and shows how the habit is done. Narration calls her "ปิ่นโต".
+- Her best friend (id "friend"): a boy of about 6. He has NO NAME. Never give him a name or a nickname. Narration calls him only "เพื่อน" or "เพื่อนของปิ่นโต"; in dialogue Pinto calls him "เพื่อน" too. He is friendly and does the habit together with Pinto.
+- The cat (id "cat"): Pinto's small black cat with a red scarf, an ordinary house pet. Call it "แมวดำ" or "เจ้าแมวดำ"; never invent another name. It never talks. If it appears at all, it is just a normal cat in the background (sleeping, sitting, watching); it is never part of the plot.
 - Their looks never change: same clothes in every page, and the cat always wears its red scarf (never lost, taken off or hidden). Small props in hand or a paper hat are fine; costumes that cover their clothes are not.`;
 
 export function ideasPrompt(topic) {
-  return `You are a playful Thai children's storyteller planning picture-book videos for children aged 4–10.
+  return `You are a gentle Thai children's storyteller planning simple teaching picture-book videos for children aged 4–10.
 The stars are always the same:
 ${CAST_BRIEF}
 
 Topic (a good habit or a simple life lesson): "${topic}"
 
-Suggest exactly 3 story ideas for this topic. The 3 ideas must be clearly different from each other in setting and kind of fun, for example:
-- one everyday adventure at home, at school or outdoors with a funny problem,
-- one imaginative twist (pretend play, a tiny world, a talking object, a magic surprise),
-- one playful game, challenge or little mystery (a race, a hunt, something missing).
+Suggest exactly 3 story ideas for this topic. Each idea is one plain, realistic everyday situation from a child's day, and the 3 ideas happen in clearly different everyday settings, for example:
+- one at home (getting up, a meal, bath time dressed, bedtime),
+- one at school (class, lunch, play time),
+- one with family (with mom, dad or grandma, a visit, a trip to the market).
+Everyday life only: no magic, no pretend worlds, no talking objects or animals, no treasure hunts, mysteries, races or surprise twists.
 
 For each idea give:
-- title: a short, catchy Thai title of 2 to 6 words.
-- pitch: one short Thai sentence that makes a child say "อยากฟัง!": show the fun problem or surprise, not the moral.
+- title: a short, simple Thai title of 2 to 6 words.
+- pitch: one short, plain Thai sentence that says what Pinto does in this everyday situation and which habit she shows.
 
-Fun first, never a lecture. Gentle and safe for small children, who copy what they watch: the characters only eat food an adult gives them (never plants they pick), are gentle with animals, never treat medicine as candy, never climb high or go near roads, water, fire, stoves, knives or electric sockets, and never go off alone or with strangers. If the topic is unsafe, scary or odd, quietly turn it into a gentle, kid-safe version of the same idea. The boy is never named.
+Gentle and safe for small children, who copy what they watch: the characters only eat food an adult gives them (never plants they pick), are gentle with animals, never treat medicine as candy, never climb high or go near roads, water, fire, stoves, knives or electric sockets, and never go off alone or with strangers. If the topic is unsafe, scary or odd, quietly turn it into a gentle, kid-safe version of the same idea. The boy is never named.
 Return JSON only.`;
 }
 
@@ -104,34 +105,35 @@ export function storyTargets(budget, minutes = 5) {
 export function storyPrompt(idea, budget, cast = loadCast(), minutes = 5) {
   const t = storyTargets(budget, minutes);
   const mainIds = cast.characters.map((c) => `"${c.id}"`).join(", ");
-  return `You are a warm, playful Thai children's storyteller. Write a picture book for children aged 4–10. It becomes a video: one picture per page, and one warm Thai female narrator reads every page aloud.
+  return `You are a warm, gentle Thai children's storyteller. Write a picture book for children aged 4–10. It becomes a video: one picture per page, and one warm Thai female narrator reads every page aloud.
 
 THE IDEA
 Title: ${idea.title}
 Pitch: ${idea.pitch}
 
-THE MOST IMPORTANT RULE: IT MUST BE FUN
-- This is an adventure, not a lesson. Children should giggle, gasp and want to know what happens next.
-- The good habit is shown through what the characters DO and what happens because of it. The narrator never preaches. Never write lines like "เด็กๆ ต้อง...", "เราควร...", "นิทานเรื่องนี้สอนให้รู้ว่า", and never end with a moral. Never say why the habit is good in adult words (no germs-cause-disease explanations, no health facts).
+THE MOST IMPORTANT RULE: PLAIN EVERYDAY LIFE THAT TEACHES ONE HABIT
+- This is a simple teaching cartoon about realistic everyday life: home, school, family, meals, bedtime. No magic, no pretend worlds, no talking objects, talking animals or talking germs, no treasure hunts or mysteries, no surprise twists, no big silly moments.
+- The story follows ONE ordinary routine around the topic, step by step, in the order it happens in a real day (for example for eating vegetables: Pinto wakes up, goes to school, opens her lunch box, finds vegetables and eats them).
+- Show the habit as clear steps a child can copy, one step at a time (for example for brushing teeth: a little toothpaste, brush the top teeth, brush the bottom teeth, rinse).
+- The narrator may teach directly in simple, gentle words: once or twice, a short reason why the habit is good (for example "แปรงฟันแล้วฟันจะไม่ปวดนะ"). Never scolding, never a long speech, no grown-up health facts.
+- End with one short closing lesson line on the last page, warm and simple.
+- Calm, small, real stakes only; nothing scary or sad. No sweets, toys or prizes as a reward for doing the habit.
 - Story shape:
-  1. Hook (pages 1–2): jump straight into something fun or curious. No "กาลครั้งหนึ่ง", no slow introductions.
-  2. A problem that matters to the characters appears.
-  3. They try something that goes wrong in a really funny way: a big silly moment (something slippery, a giant mess, a chase, the cat doing something unexpected).
-  4. A real surprise twist the listener does not see coming, something that changes the situation (not just a small joke).
-  5. Pinto has the idea that fixes it, and the good habit is the key that makes it work. Let the characters enjoy doing the habit (a game, a song, a race), so children want to copy it. The fun of doing it is the reward: no sweets, toys or prizes as a bribe for doing the habit.
-  6. A happy, cosy ending with one last funny or warm beat; a callback to an earlier joke is great.
-- Small, safe stakes only (a lost toy, a party, a race, a mystery); never scary or sad for long.
+  1. Start (pages 1–2): Pinto's ordinary day begins (waking up, getting ready, arriving somewhere). A simple, calm opening; no "กาลครั้งหนึ่ง".
+  2. The everyday moment where the habit comes up.
+  3. Pinto (and her friend) do the habit, step by step, over several pages, with a short reason why it is good.
+  4. A small, real good result (clean hands, a full tummy, feeling fresh, ready for bed).
+  5. A cosy ending and one short closing lesson line.
 
 THE CHARACTERS (the same in every episode)
 ${CAST_BRIEF}
-- Side characters are optional (for example แม่, พ่อ, คุณครู, ยาย, a puppy, a bird, a tiny germ, a talking toothbrush). At most 3. Give each a short lowercase English id (like "mom", "teacher", "germ") and a "look": a short English visual description (who or what it is, age or species, colours, clothes) so the illustrator draws it the same on every page. Never use pandas, rabbits, penguins, kappa or a second cat.
+- Side characters are optional and are ordinary people (for example แม่, พ่อ, คุณครู, ยาย, classmates). At most 3. Give each a short lowercase English id (like "mom", "teacher", "grandma") and a "look": a short English visual description (who or what it is, age or species, colours, clothes) so the illustrator draws it the same on every page. Never use pandas, rabbits, penguins, kappa or a second cat.
 
 HOW THE THAI MUST SOUND (it is read aloud)
 - Natural spoken Thai that a 4-year-old understands, the way a loving Thai mother tells a bedtime story. Short sentences, one idea each.
-- Use playful sound words (like ซู่ซ่า, ปุ๊บปั๊บ, ตุ้บ, ฟึ่บ, กรุ๊งกริ๊ง, จ๊ะเอ๋) and a bit of rhythm.
-- Invent ONE short, catchy refrain (a chant, a magic phrase or a little song line) that comes back at least 3 times, so children can say it along.
-- Sometimes talk to the listener (for example "หนูว่า...อยู่ไหนนะ") but not on every page.
-- Lively dialogue in quotation marks, and make clear who is speaking.
+- Plain, calm words. No chants, no repeated catchphrases, no playful noise words, no jokes.
+- Sometimes talk to the listener gently (for example "หนูล้างมือแบบนี้ได้ไหมคะ") but not on every page.
+- A little simple dialogue in quotation marks is fine; make clear who is speaking.
 - Write numbers as Thai words. No English words, no emoji, no brackets, no lists, no stage directions: only what the narrator says.
 - Vary how pages begin; do not start every page with a name.
 
@@ -147,7 +149,7 @@ SAFETY
 - Children copy what they watch, so the characters never do anything unsafe, not even as a joke or a mistake:
   - They only eat food an adult gives them or that comes washed from the kitchen or from an adult's basket. They never eat leaves, flowers, berries, mushrooms or plants they pick themselves, and never eat anything straight from the soil.
   - No medicine or vitamins treated as candy or a game.
-  - Be gentle with animals: no pulling tails, no chasing to grab them, no squeezing, lifting roughly or dressing them up. The cat chases them or plays on its own; the children only pet it softly.
+  - Be gentle with animals: no pulling tails, no chasing to grab them, no squeezing, lifting roughly or dressing them up. The children only pet the cat softly.
   - No climbing high places (shelves, trees, furniture, windows). Nothing near roads, water, fire, stoves, knives or electric sockets.
   - They never go off alone or with strangers.
   - An adult is nearby whenever food is picked, cut or cooked.

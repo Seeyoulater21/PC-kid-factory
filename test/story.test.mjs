@@ -251,13 +251,29 @@ test("writeStory trims text fields", async () => {
 
 // ---------- prompts ----------
 
-test("story prompt sets the fun-story rules", () => {
+test("story prompt sets the plain everyday-lesson rules", () => {
   const p = storyPrompt(idea(1), pageBudget(5), loadCast());
   assert.match(p, /ปิ่นโต/);
   assert.match(p, /เพื่อนของปิ่นโต/);
   assert.match(p, /4.{0,3}10/);
   assert.match(p, /location/i);
   assert.match(p, /never/i);
+  const low = p.toLowerCase();
+  for (const phrase of ["everyday", "routine", "no magic", "talking objects", "steps a child can copy", "closing lesson"]) {
+    assert.ok(low.includes(phrase), `story prompt missing: ${phrase}`);
+  }
+  for (const old of ["must be fun", "refrain", "sound words", "real surprise twist", "talking toothbrush", "tiny germ", "never end with a moral"]) {
+    assert.ok(!low.includes(old), `story prompt still has: ${old}`);
+  }
+});
+
+test("cast brief keeps the cat an ordinary pet", () => {
+  for (const p of [ideasPrompt("กินผัก"), storyPrompt(idea(1), pageBudget(5), loadCast())]) {
+    const low = p.toLowerCase();
+    for (const old of ["steals", "clue", "partner for jokes", "funny trouble"]) {
+      assert.ok(!low.includes(old), `prompt still has: ${old}`);
+    }
+  }
 });
 
 test("story prompt spells out the child-safety rules kids could copy", () => {
@@ -291,10 +307,15 @@ test("validateStory flags a side character that is another cat", () => {
   assert.deepEqual(validateStory(ok), []);
 });
 
-test("ideas prompt asks for 3 different angles", () => {
+test("ideas prompt asks for 3 plain everyday situations", () => {
   const p = ideasPrompt("ล้างมือ");
   assert.match(p, /3|three/i);
   assert.match(p, /ล้างมือ/);
+  const low = p.toLowerCase();
+  assert.ok(low.includes("everyday"));
+  for (const old of ["imaginative twist", "magic surprise", "mystery", "fun first"]) {
+    assert.ok(!low.includes(old), `ideas prompt still has: ${old}`);
+  }
 });
 
 test("loadCast mirrors characters.md", () => {
