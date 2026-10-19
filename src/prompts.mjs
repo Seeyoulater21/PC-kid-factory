@@ -81,7 +81,7 @@ ${CAST_BRIEF}
 Topic (a good habit or a simple life lesson): "${topic}"
 
 Suggest exactly 3 story ideas for this topic. Each idea is one plain, realistic everyday situation from a child's day, and the 3 ideas happen in clearly different everyday settings, for example:
-- one at home (getting up, a meal, bath time dressed, bedtime),
+- one at home (getting up, brushing teeth, a meal, bedtime),
 - one at school (class, lunch, play time),
 - one with family (with mom, dad or grandma, a visit, a trip to the market).
 Everyday life only: no magic, no pretend worlds, no talking objects or animals, no treasure hunts, mysteries, races or surprise twists.
@@ -115,8 +115,8 @@ THE MOST IMPORTANT RULE: PLAIN EVERYDAY LIFE THAT TEACHES ONE HABIT
 - This is a simple teaching cartoon about realistic everyday life: home, school, family, meals, bedtime. No magic, no pretend worlds, no talking objects, talking animals or talking germs, no treasure hunts or mysteries, no surprise twists, no big silly moments.
 - The story follows ONE ordinary routine around the topic, step by step, in the order it happens in a real day (for example for eating vegetables: Pinto wakes up, goes to school, opens her lunch box, finds vegetables and eats them).
 - Show the habit as clear steps a child can copy, one step at a time (for example for brushing teeth: a little toothpaste, brush the top teeth, brush the bottom teeth, rinse).
-- The narrator may teach directly in simple, gentle words: once or twice, a short reason why the habit is good (for example "แปรงฟันแล้วฟันจะไม่ปวดนะ"). Never scolding, never a long speech, no grown-up health facts.
-- End with one short closing lesson line on the last page, warm and simple.
+- The narrator may teach directly in simple, gentle words: once or twice, ONE short sentence on why the habit is good (for example "แปรงฟันแล้วฟันจะไม่ปวดนะ"). Never scolding, never a long speech, never a list of benefits, no grown-up health facts and no talk about the body's insides or the toilet.
+- End with one short closing lesson line on the last page only, warm and simple.
 - Calm, small, real stakes only; nothing scary or sad. No sweets, toys or prizes as a reward for doing the habit.
 - Story shape:
   1. Start (pages 1–2): Pinto's ordinary day begins (waking up, getting ready, arriving somewhere). A simple, calm opening; no "กาลครั้งหนึ่ง".

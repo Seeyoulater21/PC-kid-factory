@@ -66,9 +66,9 @@ to post, without calling the owner.
 - Length: target ~5 minutes; a little over is fine; no hard cap. Pages: about 4 per minute,
   **max 20 pages for a ~5-minute episode**. The page plan must enforce this.
 
-### Storytelling must be fun (owner's top priority)
-- The story is the heart of the product: it must be **fun and engaging**, not a lecture. The lesson rides on
-  a real little adventure (a problem, a funny moment, a surprise, a happy ending).
+### Storytelling: plain everyday lessons (owner, issue #8, 2026-10-19; replaces "must be fun")
+- Stories are simple teaching cartoons about realistic everyday life: one ordinary routine, the habit shown as
+  copyable steps, a short gentle reason and one closing lesson line. No magic, pretend worlds or twists.
 - The Gemini prompts are a core deliverable, written and tuned with care (owner asked for this explicitly):
   kid-friendly Thai spoken for reading aloud, short sentences, playful sounds/repetition, a warm narrator,
   each page a clear picturable moment, the habit taught through what Pinto and friends do.

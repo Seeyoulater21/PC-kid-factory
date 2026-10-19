@@ -18,32 +18,28 @@
     "title": "ถาดข้าวกลางวันของปิ่นโต",
     "pitch": "ปิ่นโตและเพื่อนช่วยกันกินผักในถาดอาหารกลางวันที่โรงเรียนจนหมดเกลี้ยงอย่างเอร็ดอร่อย"
   },
-  "estimateSeconds": 290.6,
+  "estimateSeconds": 281.7,
   "story": {
     "title": "ถาดข้าวกลางวันของปิ่นโต",
     "mood": "bright",
     "sideCharacters": [
       {
         "id": "teacher",
-        "look": "A kind female Thai kindergarten teacher with her hair tied back neatly, wearing a light blue polo shirt and dark trousers."
-      },
-      {
-        "id": "cook",
-        "look": "A cheerful middle-aged Thai school cook wearing a yellow apron and a clean white hairnet."
+        "look": "A kind Thai female teacher in her 30s with hair tied in a neat low ponytail, wearing a light blue polo shirt and dark navy trousers."
       }
     ],
     "pages": [
       {
-        "narration": "เสียงกระดิ่งโรงเรียนดังขึ้นในตอนสาย ปิ่นโตกับเพื่อนเดินเข้าห้องเรียนพร้อมกัน วันนี้มีกิจกรรมวาดรูปและร้องเพลงอย่างสนุกสนาน พอใกล้เที่ยง ท้องของเด็กทั้งสองก็เริ่มส่งเสียงร้องเบาๆ แล้วค่ะ",
-        "scene": "In the bright kindergarten classroom at school, Pinto and the friend are sitting at a low wooden table putting away their crayons into small containers, smiling happily with anticipation.",
+        "narration": "แสงแดดยามสายส่องเข้ามาในห้องเรียน ปิ่นโตกับเพื่อนนั่งวาดรูปดอกไม้อยู่ที่โต๊ะ ทั้งสองคนตั้งใจระบายสีอย่างสนุกสนาน วันนี้มีลมพัดเย็นสบายผ่านหน้าต่างเข้ามา",
+        "scene": "In the bright kindergarten classroom at school, beside a low wooden craft table near an open window, Pinto and the friend are sitting on small wooden chairs, happily colouring drawing sheets with wax crayons.",
         "cast": [
           "pinto",
           "friend"
         ]
       },
       {
-        "narration": "คุณครูบอกให้เด็กๆ พักเก็บของ แล้วเดินไปล้างมือให้สะอาดก่อนกินข้าว ปิ่นโตถูสบู่จนทั่วทั้งฝ่ามือและหลังมือ เพื่อนก็ล้างมือจนสะอาดเอี่ยม เพื่อเตรียมตัวไปกินอาหารกลางวันด้วยกัน",
-        "scene": "In the school washroom near the sinks, Pinto and the friend stand side by side on low wooden stools, washing their soapy hands under clear running water with gentle smiles.",
+        "narration": "เสียงกริ่งพักกลางวันดังขึ้นอย่างสดใส คุณครูส่งยิ้มหวานแล้วบอกให้เด็กๆ เก็บสี ปิ่นโตกับเพื่อนวางกล่องสีลงบนโต๊ะอย่างเรียบร้อย ท้องของเด็กทั้งสองเริ่มส่งเสียงเบาๆ แล้ว",
+        "scene": "In the classroom, standing beside the low craft table, the teacher smiles warmly and gestures gently to the children, while Pinto and the friend neatly put their crayon boxes in order.",
         "cast": [
           "pinto",
           "friend",
@@ -51,105 +47,16 @@
         ]
       },
       {
-        "narration": "ที่โรงอาหาร กลิ่นกับข้าวหอมฟุ้งไปทั่ว ปิ่นโตกับเพื่อนเดินเข้าแถวอย่างเป็นระเบียบ คุณป้าแม่ครัวใจดียิ้มต้อนรับ พร้อมตักอาหารใส่ถาดหลุมใบใหญ่ที่มีหลายช่อง ยื่นส่งให้เด็กทั้งสองคน",
-        "scene": "In the bustling school cafeteria at the food service counter, the friendly cook in a yellow apron hands a stainless steel divided lunch tray to Pinto, while the friend waits patiently in line behind her.",
-        "cast": [
-          "pinto",
-          "friend",
-          "cook"
-        ]
-      },
-      {
-        "narration": "ในถาดหลุมมีข้าวสวยร้อนๆ แกงจืดเต้าหู้หมูสับใส่แครอทสีส้ม และผัดผักรวมมิตรสีเขียวสดใส อาหารทุกอย่างดูน่ากินมาก ปิ่นโตกับเพื่อนช่วยกันประคองถาดอย่างระมัดระวังไปที่โต๊ะ",
-        "scene": "In the school cafeteria walking between the wooden tables, Pinto and the friend carefully carry their loaded stainless steel lunch trays with both hands, looking down at the colorful food safely.",
+        "narration": "ก่อนจะไปกินข้าว ทุกคนต้องล้างมือก่อน ปิ่นโตและเพื่อนยืนเปิดก๊อกน้ำ ถูฟองสบู่ให้ทั่วมือทั้งสองข้างจนสะอาด แล้วล้างน้ำเปล่าจนเกลี้ยง ตอนนี้มือหอมสะอาดพร้อมกินข้าวแล้วค่ะ",
+        "scene": "In the school washroom area, in front of a low tiled sink with mirrors, Pinto and the friend stand side by side rubbing white foamy soap bubbles over both hands with happy expressions.",
         "cast": [
           "pinto",
           "friend"
         ]
       },
       {
-        "narration": "เด็กทั้งสองคนนั่งลงข้างกันบนม้านั่งตัวยาว ปิ่นโตวางถาดข้าวลงบนโต๊ะไม้เรียบร้อย เพื่อนมองดูผักสีส้มและสีเขียวในถาด แล้วทำตาโต ปิ่นโตจึงยิ้มให้เพื่อนอย่างอบอุ่นและชวนเริ่มกินข้าวด้วยกัน",
-        "scene": "In the school cafeteria at a long wooden bench, Pinto and the friend sit side by side with their lunch trays in front of them, the friend looking curiously at the vegetables while Pinto smiles warmly at him.",
-        "cast": [
-          "pinto",
-          "friend"
-        ]
-      },
-      {
-        "narration": "เพื่อนตักข้าวขึ้นมาหนึ่งช้อน แต่มองแครอทในชามแกงจืดแล้วยังไม่กล้าตัก เพื่อนบอกปิ่นโตเบาๆ ว่ายังไม่เคยลองชิ้นใหญ่ ปิ่นโตจึงพยักหน้าเข้าใจ และบอกเพื่อนว่าเราลองชิมชิ้นเล็กๆ ดูก่อนได้นะ",
-        "scene": "In the school cafeteria at the dining table, the friend holds a stainless steel spoon poised over his soup compartment looking hesitant at a slice of carrot, while Pinto gently gestures toward her own tray to reassure him.",
-        "cast": [
-          "pinto",
-          "friend"
-        ]
-      },
-      {
-        "narration": "ปิ่นโตใช้ช้อนตัดแครอทต้มสุกให้เป็นชิ้นเล็กพอดีคำ แล้วตักขึ้นมาพร้อมน้ำซุปอุ่นๆ ปิ่นโตอ้าปากเคี้ยวอย่างเอร็ดอร่อย แครอทที่ต้มจนนิ่มมีรสหวานตามธรรมชาติ ไม่ขมเลยสักนิดเดียวค่ะ",
-        "scene": "In the school cafeteria at the table, close-up view of Pinto cheerfully lifting a small bite-sized piece of soft orange carrot on her spoon with a little soup, ready to eat it happily.",
-        "cast": [
-          "pinto",
-          "friend"
-        ]
-      },
-      {
-        "narration": "เพื่อนเห็นปิ่นโตกินอย่างอร่อย จึงลองใช้ช้อนตัดแครอทชิ้นเล็กบ้าง เพื่อนค่อยๆ ส่งเข้าปากแล้วเคี้ยวช้าๆ ดวงตาของเพื่อนเป็นประกายสดใส แครอทนุ่มนิ่มและหวานชื่นใจกว่าที่คิดไว้จริงๆ",
-        "scene": "In the school cafeteria at the wooden table, the friend takes a small bite of carrot from his spoon, his eyes wide with pleasant surprise and cheeks round as he chews.",
-        "cast": [
-          "pinto",
-          "friend"
-        ]
-      },
-      {
-        "narration": "ต่อมาปิ่นโตตักผักกาดขาวจากผัดผักรวมมิตรมากินคู่กับข้าวสวยร้อนๆ การกินผักพร้อมกับข้าวคำโตช่วยให้เคี้ยวง่ายและรสชาติกลมกล่อม เพื่อนเห็นแล้วก็ตักผักเขียวมากินตามปิ่นโตทันที",
-        "scene": "In the school cafeteria at the wooden table, Pinto scoops a forkful of tender green cabbage together with white rice, showing the friend how easily they mix together.",
-        "cast": [
-          "pinto",
-          "friend"
-        ]
-      },
-      {
-        "narration": "การกินผักหลากสีมีประโยชน์ต่อร่างกายมากนะคะ ผักช่วยให้เด็กๆ เติบโตแข็งแรง วิ่งเล่นได้ทั้งวันโดยไม่เหนื่อยง่าย และยังช่วยให้ขับถ่ายสบายทุกเช้า ท้องไม่ผูกและไม่อึดอัดตัวเลยค่ะ",
-        "scene": "In the school cafeteria at the table, Pinto and the friend are happily chewing their food together, looking cheerful and healthy with good posture on the bench.",
-        "cast": [
-          "pinto",
-          "friend"
-        ]
-      },
-      {
-        "narration": "“ผักอร่อยและเคี้ยวเพลินจังเลย” เพื่อนบอกกับปิ่นโตด้วยรอยยิ้ม ตอนนี้เพื่อนไม่กลัวผักอีกต่อไปแล้ว ทั้งสองคนตักข้าวสลับกับผักในถาดหลุมเข้าปากทีละคำอย่างเพลิดเพลินและมีความสุข",
-        "scene": "In the school cafeteria at the table, the friend smiles brightly at Pinto while scooping another spoonful of stir-fried vegetables, completely enjoying his meal.",
-        "cast": [
-          "pinto",
-          "friend"
-        ]
-      },
-      {
-        "narration": "ทั้งสองคนผลัดกันกินผักในถาดจนพร่องไปเรื่อยๆ ทั้งแครอทสีส้มหวาน ผักกาดขาวนุ่มลิ้น และผักใบเขียวกรุบกรอบ ทุกคำที่เคี้ยวเต็มไปด้วยความสดชื่นและรสชาติแสนอร่อยของอาหารฝีมือคุณป้าแม่ครัว",
-        "scene": "In the school cafeteria at the dining table, both children happily chew together, the food compartments in their trays visibly half-empty as they eat smoothly.",
-        "cast": [
-          "pinto",
-          "friend"
-        ]
-      },
-      {
-        "narration": "มองดูในถาดหลุมตอนนี้ ข้าวสวยและผักทุกชิ้นเหลือน้อยลงมากแล้ว ปิ่นโตใช้ช้อนกวาดข้าวและผักชิ้นสุดท้ายขึ้นมา เพื่อนก็กำลังตักน้ำแกงจืดคำสุดท้ายเข้าปากเช่นเดียวกันอย่างตั้งใจ",
-        "scene": "In the school cafeteria at the table, a top-down view showing both lunch trays with only one last spoonful of vegetables and soup remaining, as Pinto neatly scrapes her spoon along the tray bottom.",
-        "cast": [
-          "pinto",
-          "friend"
-        ]
-      },
-      {
-        "narration": "ทั้งปิ่นโตและเพื่อนกินอาหารจนหมดเกลี้ยงทุกช่อง ถาดหลุมสะอาดสะอาดตา ไม่มีข้าวหรือผักเหลือทิ้งเลยแม้แต่คำเดียว เด็กทั้งสองคนรู้สึกอิ่มสบายท้องและภูมิใจในตัวเองเป็นที่สุด",
-        "scene": "In the school cafeteria at the wooden bench, Pinto and the friend sit proudly resting their hands on their full bellies, smiling down at their completely clean, empty metal trays.",
-        "cast": [
-          "pinto",
-          "friend"
-        ]
-      },
-      {
-        "narration": "ปิ่นโตกับเพื่อนช่วยกันยกถาดอาหารเดินไปวางที่จุดเก็บถาด คุณครูเดินผ่านมาเห็นถาดข้าวที่ว่างเปล่า จึงเอ่ยชมว่าทั้งสองคนเก่งมาก ที่กินทั้งข้าวและผักจนหมดเกลี้ยงถาดอย่างน่ารัก",
-        "scene": "In the school cafeteria beside the tray collection shelves, Pinto and the friend carefully place their empty trays onto the rack while the teacher stands nearby smiling approvingly.",
+        "narration": "เด็กๆ เดินเรียงแถวเข้ามาในโรงอาหารอย่างเป็นระเบียบ คุณครูตักอาหารใส่ถาดหลุมสแตนเลสส่งให้ปิ่นโต กลิ่นหอมกรุ่นของข้าวสวยและซุปร้อนๆ ลอยขึ้นมาเตะจมูก",
+        "scene": "In the school cafeteria, by the food serving counter, the teacher stands behind the counter handing a shiny stainless steel compartment lunch tray to Pinto, who receives it with both hands and a polite smile.",
         "cast": [
           "pinto",
           "friend",
@@ -157,8 +64,103 @@
         ]
       },
       {
-        "narration": "เด็กทั้งสองคนเดินออกมารับลมเย็นที่สนามหญ้าหน้าโรงเรียน ร่างกายรู้สึกกระปรี้กระเปร่าและพร้อมที่จะเรียนรู้สิ่งใหม่ๆ การกินผักทุกวันทำให้ร่างกายแข็งแรงและสดใสเสมอเลยนะคะ",
-        "scene": "Outside on the green school lawn under gentle sunshine, Pinto and the friend walk happily side by side, energized, full of strength, and smiling brightly.",
+        "narration": "ปิ่นโตใช้สองมือประคองถาดอาหารเดินมานั่งที่โต๊ะ เพื่อนของปิ่นโตเดินถือถาดตามมานั่งข้างๆ กัน ทั้งสองคนวางถาดลงบนโต๊ะไม้อย่างระมัดระวัง ไม่ทำให้อาหารหกเลอะเทอะเลย",
+        "scene": "In the cafeteria dining area, beside a long light-wood dining bench, Pinto carefully places her food tray on the table while the friend sits down beside her, holding his own tray safely.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "ในถาดหลุมมีข้าวสวยร้อนๆ ต้มจืดเต้าหู้หมูสับ แครอทสีส้ม และผักกาดขาวสีเขียวอ่อน สีสันในถาดดูสดใสน่ากินมาก ปิ่นโตหยิบช้อนส้อมเตรียมพร้อมจะตักข้าวคำแรก",
+        "scene": "In the cafeteria dining area, looking directly down at Pinto's stainless steel tray on the wooden table, showing compartments of fluffy jasmine rice, clear soup with soft tofu, sliced orange carrots, and pale green Chinese cabbage.",
+        "cast": [
+          "pinto"
+        ]
+      },
+      {
+        "narration": "เพื่อนของปิ่นโตมองดูผักสีเขียวในถาดแล้วทำตาโต เขายังไม่กล้าตักผักขึ้นมากิน ปิ่นโตเห็นเข้าจึงหันมายิ้มให้เพื่อนอย่างอ่อนโยน \"ลองกินดูนิดหนึ่งนะ อร่อยมากเลย\"",
+        "scene": "In the cafeteria dining area, seated side by side at the lunch table, the friend stares hesitantly with wide eyes at the green vegetables in his tray, while Pinto turns to him with a kind and reassuring smile.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "ปิ่นโตใช้ช้อนตักแครอทสีส้มชิ้นเล็กๆ ขึ้นมาพร้อมกับข้าวสวยพอดีคำ เธอเป่าลมเบาๆ ให้คลายร้อนก่อนนำเข้าปาก เด็กๆ เวลาเคี้ยวอาหารต้องเคี้ยวช้าๆ อย่างตั้งใจนะคะ",
+        "scene": "In the cafeteria dining area, at the lunch table, Pinto holds her small metal spoon with a bite-sized piece of cooked orange carrot and a bit of warm rice, gently blowing on it before taking a bite.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "ปิ่นโตเคี้ยวแครอทตุ้ยๆ ผักต้มนุ่มกำลังดีและมีรสหวานจากธรรมชาติ ปิ่นโตยิ้มตาหยีอย่างถูกใจ ผักต้มในน้ำซุปไม่ได้ขมเลยสักนิด มีแต่รสชาติอร่อยกลมกล่อม",
+        "scene": "In the cafeteria dining area, close-up view of Pinto sitting at the table, cheeks slightly puffed as she chews happily with eyes curved in a bright smile, savoring the sweet carrot.",
+        "cast": [
+          "pinto"
+        ]
+      },
+      {
+        "narration": "ปิ่นโตหันไปบอกเพื่อนด้วยน้ำเสียงนุ่มนวล \"กินผักแล้วร่างกายของเราจะแข็งแรงนะ\" เมื่อเพื่อนได้ยินคำพูดอบอุ่นของปิ่นโต ก็เริ่มยิ้มออกและอยากลองชิมผักดูบ้างแล้ว",
+        "scene": "In the cafeteria dining area, sitting together at the table, Pinto talks gently with a bright expression, while the friend listens attentively with a relaxed, cheerful look on his face.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "เพื่อนหยิบช้อนตักผักกาดขาวชิ้นเล็กที่สุดในถาดขึ้นมา เขาค่อยๆ อ้าปากแล้วส่งผักเข้าปากอย่างกล้าหาญ ปิ่นโตนั่งมองเพื่อนด้วยสายตาที่คอยเป็นกำลังใจให้อยู่ข้างๆ",
+        "scene": "In the cafeteria dining area, at the lunch table, the friend carefully lifts a tiny piece of soft cooked cabbage on his spoon toward his open mouth, while Pinto watches him with an encouraging grin.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "เพื่อนเคี้ยวผักช้าๆ แล้วดวงตาก็เป็นประกาย ผักกาดขาวหวานนุ่มและเคี้ยวง่ายกว่าที่คิดไว้มาก เพื่อนพยักหน้าแล้วบอกปิ่นโตด้วยความดีใจว่า \"ผักนุ่มและหวานจังเลย\"",
+        "scene": "In the cafeteria dining area, at the lunch table, the friend chews with sparkling, delighted eyes, giving a small happy nod to Pinto, who giggles softly in response.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "ทั้งสองคนตักข้าวสลับกับผักและซุปร้อนๆ เข้าปากอย่างเพลิดเพลิน เสียงเคี้ยวอาหารอย่างมีความสุขดังขึ้นเบาๆ ผักสีเขียวและสีส้มในถาดค่อยๆ ลดลงไปทีละคำจนเกือบหมด",
+        "scene": "In the cafeteria dining area, sitting at the wooden dining table, Pinto and the friend happily scoop soup, rice, and vegetables into their mouths together, both trays now nearly empty.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "เพียงไม่นาน อาหารในถาดหลุมของทั้งคู่ก็หมดเกลี้ยง ไม่มีข้าวหรือผักเหลือทิ้งไว้แม้แต่ชิ้นเดียว ถาดหลุมสแตนเลสสะอาดเอี่ยม ปิ่นโตกับเพื่อนมองหน้ากันแล้วหัวเราะเบาๆ",
+        "scene": "In the cafeteria dining area, looking over the lunch table, Pinto and the friend place their spoons down in their completely clean, empty metal trays and share a proud, cheerful laugh.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "เพื่อนลูบท้องของตัวเองเบาๆ ด้วยความอิ่มสบาย ปิ่นโตก็นั่งยิ้มอย่างสดชื่น การได้กินทั้งข้าวและผักจนหมดทำให้รู้สึกมีเรี่ยวแรงเต็มเปี่ยม พร้อมจะไปทำกิจกรรมช่วงบ่ายแล้ว",
+        "scene": "In the cafeteria dining area, on the dining bench, the friend pats his satisfied tummy with one hand smiling pleasantly, while Pinto sits upright with rosy cheeks and a happy, energetic posture.",
+        "cast": [
+          "pinto",
+          "friend"
+        ]
+      },
+      {
+        "narration": "ปิ่นโตและเพื่อนยกถาดหลุมเดินไปวางซ้อนกันที่จุดเก็บถาดอย่างเป็นระเบียบ ทั้งสองคนช่วยกันคนละไม้คนละมือ คุณครูที่ยืนอยู่ใกล้ๆ หันมายิ้มชมเชยในความเรียบร้อยของเด็กๆ",
+        "scene": "In the cafeteria, beside the tray return shelf and washing basin, Pinto and the friend stack their empty metal trays neatly onto the tray rack as the teacher watches with an admiring smile.",
+        "cast": [
+          "pinto",
+          "friend",
+          "teacher"
+        ]
+      },
+      {
+        "narration": "ทั้งสองคนดื่มน้ำเปล่าสะอาดแล้วใช้ผ้าเช็ดปากจนแห้ง การกินผักทุกวันทำให้ร่างกายแข็งแรงและเติบโตอย่างสดใส วันนี้หนูๆ กินผักในมื้ออาหารหมดเกลี้ยงเหมือนปิ่นโตไหมคะ",
+        "scene": "In the cafeteria near the drinking water station, Pinto and the friend hold small reusable cups of clean water, smiling brightly toward the viewer with neat, clean faces.",
         "cast": [
           "pinto",
           "friend"

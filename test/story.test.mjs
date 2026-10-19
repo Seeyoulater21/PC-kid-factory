@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { GeminiError, MODELS } from "../src/gemini.mjs";
 import {
   ideas, writeStory, validateStory, pageBudget, estimateSeconds, imagePrompt,
@@ -259,7 +260,7 @@ test("story prompt sets the plain everyday-lesson rules", () => {
   assert.match(p, /location/i);
   assert.match(p, /never/i);
   const low = p.toLowerCase();
-  for (const phrase of ["everyday", "routine", "no magic", "talking objects", "steps a child can copy", "closing lesson"]) {
+  for (const phrase of ["everyday", "routine", "no magic", "no pretend worlds", "talking objects", "no treasure hunts", "no surprise twists", "steps a child can copy", "closing lesson", "never scolding"]) {
     assert.ok(low.includes(phrase), `story prompt missing: ${phrase}`);
   }
   for (const old of ["must be fun", "refrain", "sound words", "real surprise twist", "talking toothbrush", "tiny germ", "never end with a moral"]) {
@@ -312,7 +313,9 @@ test("ideas prompt asks for 3 plain everyday situations", () => {
   assert.match(p, /3|three/i);
   assert.match(p, /ล้างมือ/);
   const low = p.toLowerCase();
-  assert.ok(low.includes("everyday"));
+  for (const phrase of ["everyday", "no magic", "no talking objects", "no treasure hunts"]) {
+    assert.ok(low.includes(phrase), `ideas prompt missing: ${phrase}`);
+  }
   for (const old of ["imaginative twist", "magic surprise", "mystery", "fun first"]) {
     assert.ok(!low.includes(old), `ideas prompt still has: ${old}`);
   }
@@ -327,6 +330,9 @@ test("loadCast mirrors characters.md", () => {
     assert.match(ch.sheet, /^assets\/characters\/\w+\.jpg$/);
   }
   assert.match(c.voiceStyle, /Thai/);
+  assert.doesNotMatch(c.voiceStyle, /sound words/);
+  const md = fs.readFileSync(new URL("../assets/characters/characters.md", import.meta.url), "utf8");
+  assert.ok(md.includes(`voice_style: ${c.voiceStyle}`), "characters.md voice_style differs from cast.json");
 });
 
 const FORBIDDEN = ["green cap panda", "pink rabbit", "penguin", "kappa"];

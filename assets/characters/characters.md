@@ -21,7 +21,7 @@ Sheets are reference images for every page image. Look and art style come from `
 
 ## Voice
 - voice: `en-us-sola` (owner picked 2026-10-18 from achernar / vindemiatrix / en-us-sola / en-us-assistant-5)
-- voice_style: A warm, cheerful young Thai woman reading a picture book aloud to children aged 4 to 10. Natural native Thai pronunciation and tones, smiling voice, lively but gentle, clear and a little slow, playful with sound words, brief natural pauses between sentences.
+- voice_style: A warm, cheerful young Thai woman reading a picture book aloud to children aged 4 to 10. Natural native Thai pronunciation and tones, smiling voice, calm and gentle, clear and a little slow, brief natural pauses between sentences.
 
 ## Spike notes (2026-10-18)
 - Images: 3 sheets as references keep all 3 characters consistent across 6 test pages; no style anchor needed.
