@@ -512,9 +512,9 @@ function roomShell() {
       </div>
     </div>`;
   $("#allImages").onclick = () => startJob("images");
-  $("#allVoices").onclick = async () => { await saveNarration(); startJob("voices"); };
+  $("#allVoices").onclick = async () => { if (await saveNarration() !== false) startJob("voices"); };
   $("#oneImage").onclick = () => startJob("images", { pages: [sel] });
-  $("#oneVoice").onclick = async () => { await saveNarration(); startJob("voices", { pages: [sel] }); };
+  $("#oneVoice").onclick = async () => { if (await saveNarration() !== false) startJob("voices", { pages: [sel] }); };
   $("#play").onclick = playVoice;
   const narr = $("#narr");
   narr.onblur = saveNarration;
@@ -546,6 +546,7 @@ async function saveNarration() {
     // a note keeps the typed text on screen (the next poll would otherwise put the old text back)
     if (sel === n) $("#savedNote").textContent = "⚠ ยังไม่ได้บันทึก";
     showError(e);
+    return false; // callers stop: no voice from the old text, no page switch that would drop the typed text
   }
 }
 
@@ -587,7 +588,7 @@ function roomUpdate() {
   }).join("");
   list.querySelectorAll(".pg").forEach((b) => {
     b.onclick = async () => {
-      await saveNarration();
+      if (await saveNarration() === false) return;
       sel = Number(b.dataset.n);
       loadPage();
       roomUpdate();
@@ -637,7 +638,7 @@ function drawTakes(p, imgBusy, voiceBusy) {
 }
 
 async function pickTake(kind, take) {
-  if (kind === "voice") await saveNarration();
+  if (kind === "voice" && await saveNarration() === false) return;
   const n = sel;
   try {
     ep = await api("POST", `/api/episodes/${encodeURIComponent(ep.id)}/pages/${n}/pick`, { kind, take });
@@ -679,7 +680,12 @@ async function videoShell() {
     if (musicPlayer) return stopMusic();
     musicPlayer = new Audio(`/music/${encodeURIComponent(musicSel.value)}.mp3`);
     musicPlayer.onended = stopMusic;
-    musicPlayer.play().catch(() => { stopMusic(); showError(new Error("เล่นเพลงไม่ได้")); });
+    const a = musicPlayer;
+    a.play().catch((e) => {
+      if (musicPlayer !== a || e?.name === "AbortError") return; // stopped (or replaced) before it started
+      stopMusic();
+      showError(new Error("เล่นเพลงไม่ได้"));
+    });
     listen.textContent = "■ หยุด";
   };
   musicSel.onchange = stopMusic;

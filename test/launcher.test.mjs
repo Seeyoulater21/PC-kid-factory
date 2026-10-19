@@ -13,6 +13,8 @@ test("pickPort reuses a running Kid Factory before taking a free port", async ()
   assert.deepEqual(await pickPort({ ports, ours: async (p) => p === 3, free: async () => true }), { port: 3, reuse: true });
   assert.deepEqual(await pickPort({ ports, ours: async () => false, free: async (p) => p > 1 }), { port: 2, reuse: false });
   assert.equal(await pickPort({ ports, ours: async () => false, free: async () => false }), null);
+  // another version running: never start a second copy on the same data
+  assert.deepEqual(await pickPort({ ports, ours: async (p) => (p === 2 ? "other" : false), free: async () => true }), { port: 2, other: true });
 });
 
 test("isFree is false for a port in use", async (t) => {
@@ -79,5 +81,7 @@ test("isOurs only reuses a Kid Factory of the same version", async (t) => {
   const port = s.address().port;
   assert.equal(await isOurs(port), true);
   reply = { savedIdeas: [], version: "0.0.1" };
+  assert.equal(await isOurs(port), "other");
+  reply = { hello: 1 };
   assert.equal(await isOurs(port), false);
 });

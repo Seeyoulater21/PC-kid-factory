@@ -48,7 +48,7 @@ const numberOf = (ep) => (Number.isInteger(ep.number) && ep.number > 0 ? ep.numb
 
 // Highest number ever given (existing episodes or the counter) + 1; episodes from before numbering count as 0.
 function nextNumber() {
-  const last = Number(readJsonFile(counterPath(), {}).last) || 0;
+  const last = Number(readJsonFile(counterPath(), {})?.last) || 0;
   const n = loadAll().reduce((m, ep) => Math.max(m, numberOf(ep) ?? 0), last) + 1;
   writeJson(counterPath(), { last: n });
   return n;

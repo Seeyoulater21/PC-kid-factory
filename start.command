@@ -27,6 +27,7 @@ LAST=4858
 VERSION=$(node -p 'require("./package.json").version')
 # a Kid Factory of this same version (another copy or version on the port is left alone)
 is_ours() { curl -s -m 2 "http://127.0.0.1:$1/api/state" 2>/dev/null | grep '"savedIdeas"' | grep -q "\"version\":\"$VERSION\""; }
+is_any() { curl -s -m 2 "http://127.0.0.1:$1/api/state" 2>/dev/null | grep -q '"savedIdeas"'; }
 app_dir() { for d in "/Applications/$1.app" "$HOME/Applications/$1.app"; do [ -d "$d" ] && return 0; done; return 1; }
 
 open_window() {
@@ -50,6 +51,10 @@ for p in $(seq $BASE $LAST); do
     open_window "http://127.0.0.1:$p/"
     echo "READY http://127.0.0.1:$p/ (reused)"
     exit 0
+  fi
+  if is_any "$p"; then
+    echo "มี Kid Factory อีกเวอร์ชันเปิดอยู่ ปิดหน้าต่าง Terminal ของตัวนั้นก่อนแล้วดับเบิลคลิกใหม่"
+    pause; exit 1
   fi
 done
 

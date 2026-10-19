@@ -13,12 +13,13 @@ const RUNTIME = fileURLToPath(new URL("../../runtime/", import.meta.url)); // <i
 
 const VERSION = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
-/** True when a Kid Factory of this same version answers on the port (another copy or version is left alone). */
+/** true: a Kid Factory of this version answers on the port; "other": one of another version; else false. */
 export async function isOurs(port) {
   try {
     const r = await fetch(`http://127.0.0.1:${port}/api/state`, { signal: AbortSignal.timeout(2000) });
     const s = r.ok ? await r.json() : {};
-    return "savedIdeas" in s && s.version === VERSION;
+    if (!("savedIdeas" in s)) return false;
+    return s.version === VERSION ? true : "other";
   } catch {
     return false;
   }
@@ -32,9 +33,16 @@ export function isFree(port) {
   });
 }
 
-/** { port, reuse: true } for a Kid Factory already running, else { port, reuse: false } for the first free port, else null. */
+/**
+ * { port, reuse: true } for this version already running; { port, other: true } when another version runs
+ * (two copies would share one data folder); else { port, reuse: false } for the first free port; else null.
+ */
 export async function pickPort({ ours = isOurs, free = isFree, ports = PORTS } = {}) {
-  for (const p of ports) if (await ours(p)) return { port: p, reuse: true };
+  for (const p of ports) {
+    const r = await ours(p);
+    if (r === true) return { port: p, reuse: true };
+    if (r === "other") return { port: p, other: true };
+  }
   for (const p of ports) if (await free(p)) return { port: p, reuse: false };
   return null;
 }
@@ -87,6 +95,7 @@ async function main() {
   const noWindow = process.env.KIDFACTORY_NO_WINDOW === "1";
   const picked = await pickPort();
   if (!picked) return messageBox(`ไม่มีพอร์ตว่าง (${PORTS[0]}-${PORTS.at(-1)}) ปิดโปรแกรมอื่นแล้วลองใหม่`);
+  if (picked.other) return messageBox("มี Kid Factory อีกเวอร์ชันเปิดอยู่ ปิดหน้าต่างนั้นก่อนแล้วเปิดใหม่");
   const url = `http://127.0.0.1:${picked.port}/`;
   if (picked.reuse) {
     if (noWindow) console.log(`READY ${url} (reused)`);

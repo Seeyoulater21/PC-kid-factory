@@ -46,11 +46,13 @@ const fail = (detail) => ownThai(RENDER_FAILED, { detail: String(detail || "").s
 
 // A hung ffmpeg is killed, so the render fails with the usual Thai message instead of blocking the episode.
 const TOOL_TIMEOUT_MS = 10 * 60_000;
-const ENCODE_TIMEOUT_MS = 30 * 60_000;
+const ENCODE_IDLE_MS = 5 * 60_000; // encode: no frame accepted for this long (a slow PC still feeds frames)
+/** Kills child after ms; returns a function that starts the wait over. */
 function killAfter(child, ms) {
   const t = setTimeout(() => child.kill("SIGKILL"), ms);
   t.unref(); // never keeps the app (or a test run) alive by itself
   child.on("exit", () => clearTimeout(t));
+  return () => t.refresh();
 }
 
 // Run a tool to completion; resolves with stdout/stderr text, rejects (Thai message, detail = stderr tail).
@@ -188,7 +190,7 @@ const muxArgs = ({ video, audio, out }) => [
 
 async function encode({ args, frames, draw, onFrame, stopIf }) {
   const ff = spawn(FFMPEG(), args, { stdio: ["pipe", "ignore", "pipe"] });
-  killAfter(ff, ENCODE_TIMEOUT_MS);
+  const alive = killAfter(ff, ENCODE_IDLE_MS);
   let err = "";
   ff.stderr.on("data", (d) => { err = (err + d).slice(-20000); });
   ff.stdin.on("error", () => {}); // EPIPE when ffmpeg dies early; the exit code tells the story
@@ -202,6 +204,7 @@ async function encode({ args, frames, draw, onFrame, stopIf }) {
       stopIf?.();
       const buf = await draw(f);
       if (!ff.stdin.write(buf)) await Promise.race([once(ff.stdin, "drain").catch(() => {}), done]);
+      alive();
       onFrame(f);
     }
   } catch (e) {

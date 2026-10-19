@@ -237,3 +237,9 @@ test("deleting the newest episode does not let the next one reuse its number", (
   assert.equal(createEpisode(sample.idea, sample.story).number, 3);
   assert.equal(listEpisodes().length, 2);
 });
+
+test("a counter file holding null does not stop new episodes", () => {
+  const d = tmp();
+  fs.writeFileSync(path.join(d, "episode-counter.json"), "null");
+  assert.equal(createEpisode(sample.idea, sample.story).number, 1);
+});
