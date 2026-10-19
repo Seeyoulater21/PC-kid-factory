@@ -1,7 +1,7 @@
 # Kid Factory v1 handoff
 
 ## Status
-v0.4.0 released 2026-10-19: video look picker (#7). v0.3.0 (same day): takes per page (#6) and the v1 review fixes (#5). v0.2.0 (same day) added the
+v0.5.0 released 2026-10-19: plain everyday-lesson stories (#8). v0.4.0 (same day): video look picker (#7). v0.3.0 (same day): takes per page (#6) and the v1 review fixes (#5). v0.2.0 (same day) added the
 Windows installer and launcher (#1), the real outro (#3) and the in-app update button (#2).
 Installed on the owner's Mac (`/Applications/KidFactory`, open `start.command`) and Windows PC.
 Owner data lives outside the code (Mac `~/Documents/KidFactory`, Windows `%USERPROFILE%\KidFactory`).
@@ -24,6 +24,8 @@ No owner check per issue for this app: build, test, review, ship, close; the own
   status asks for a new render when it differs from `ep.look`
 
 ## Owner decisions
+- Stories are plain everyday lessons (#8): one daily routine, the habit as copyable steps, one short gentle reason,
+  one closing lesson line; no magic, pretend, talking objects, twists, refrain or sound words; cat is a background pet
 - Characters locked: girl, unnamed boy friend, black cat with a red scarf; style from `assets/characters/origin.jpg`
 - Voice: `en-us-sola`; story model: `gemini-3.8-flash`
 - Page turn 1.5 s; intro 5 s, outro 15 s (real clips, swappable files)
