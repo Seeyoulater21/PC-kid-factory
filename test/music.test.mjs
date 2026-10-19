@@ -62,3 +62,18 @@ test("every track has source and licence", () => {
   assert.throws(() => addTrack({ ...meta("x", "sad") }, Buffer.from("a")), /mood/);
   for (const t of listTracks()) assert.ok(t.source && t.licence);
 });
+
+test("addTrack never overwrites a track that is already there", () => {
+  addTrack(meta("b-1", "bright"), Buffer.from("a"));
+  assert.throws(() => addTrack(meta("b-1", "bright"), Buffer.from("b")), /exists/);
+  assert.equal(fs.readFileSync(path.join(dir, "music", "b-1.mp3"), "utf8"), "a");
+});
+
+test("a sidecar with an unsafe id or broken JSON is skipped", () => {
+  listTracks();
+  fs.writeFileSync(path.join(dir, "music", "bad.json"), JSON.stringify({ ...meta("../x", "calm") }));
+  fs.writeFileSync(path.join(dir, "music", "broken.json"), "{");
+  const ids = listTracks().map((t) => t.id);
+  assert.ok(!ids.includes("../x"));
+  assert.equal(ids.length, 3);
+});

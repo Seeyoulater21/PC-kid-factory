@@ -17,6 +17,7 @@ const THAI = {
   busy: "Gemini ไม่ว่าง ลองใหม่อีกครั้ง",
   refused: "Gemini ไม่ยอมทำตามคำขอนี้ ลองใหม่อีกครั้ง",
   network: "ต่ออินเทอร์เน็ตไม่ได้",
+  slow: "Gemini ตอบช้าเกินไป ลองใหม่อีกครั้ง",
   empty: "Gemini ไม่ส่งผลลัพธ์กลับมา ลองใหม่",
 };
 const THAI_FREE_TIER = "ต้องเปิดการชำระเงินใน Google AI Studio ก่อนจึงจะวาดภาพได้";
@@ -42,6 +43,8 @@ export function createGemini({ key, fetch = globalThis.fetch, sleep = realSleep 
   function classify(status, text) {
     const t = text.toLowerCase();
     if (status === 429 && /free tier|limit:\s*0\b/.test(t)) return ["credit", THAI_FREE_TIER];
+    // a per-minute or per-second limit passes in a moment, though its text also mentions quota and billing
+    if (status === 429 && /per.?minute|per.?second/.test(t)) return ["busy"];
     if (/api key not valid|api_key_invalid|invalid api key/.test(t)) return ["key"];
     if (status === 401 || status === 403) return ["key"];
     if (/quota|billing|insufficient|payment/.test(t) || status === 402) return ["credit"];
@@ -63,6 +66,7 @@ export function createGemini({ key, fetch = globalThis.fetch, sleep = realSleep 
         });
         text = await res.text();
       } catch (e) {
+        if (e?.name === "TimeoutError") throw new GeminiError("slow", `timed out: ${scrub(e?.message)}`);
         throw new GeminiError("network", `network error: ${scrub(e?.message)}`);
       }
       if (res.ok) {

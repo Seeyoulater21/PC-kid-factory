@@ -15,7 +15,7 @@ import {
   saveIdeas, listSavedIdeas, removeSavedIdea,
 } from "./episodes.mjs";
 import { makeImages, makeVoices, staleVoices, estimateCost, pickTake } from "./pages.mjs";
-import { listTracks } from "./music.mjs";
+import { listTracks, trackFile } from "./music.mjs";
 import { chooseMusic } from "./render/video.mjs";
 import { buildTimeline, timelineSeconds, TIMING } from "./timeline.mjs";
 import { checkUpdate, stageUpdate, startSwap, canSelfUpdate, currentVersion, takeResult } from "./update.mjs";
@@ -367,6 +367,11 @@ export function createServer(opts = {}) {
 
     if (method === "GET" && STATIC[pathname]) return serveFile(req, res, path.join(PUBLIC_DIR, STATIC[pathname]));
     if (method === "GET" && pathname.startsWith("/media/")) return serveMedia(req, res, pathname);
+    if (method === "GET" && pathname.startsWith("/music/")) {
+      const m = /^\/music\/([A-Za-z0-9_-]+)\.mp3$/.exec(pathname);
+      const file = m && trackFile(m[1]);
+      return file ? serveFile(req, res, file) : sendJson(res, 404, { error: T.generic });
+    }
     if (!pathname.startsWith("/api/")) return sendJson(res, 404, { error: T.generic });
 
     for (const [verb, re, fn] of routes) {

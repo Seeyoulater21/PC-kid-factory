@@ -153,7 +153,7 @@ export function createBook({ width = 1920, height = 1080 } = {}) {
       ctx.fillStyle = `rgb(${PAPER_RGB})`;
       ctx.fillRect(PX + x0, PY, x1 - x0, PH);
     } else {
-      const s = scaled(img), z = zoom > 0 ? zoom : 1;
+      const s = scaled(img), z = Math.min(ZOOM_MAX, Math.max(1, Number(zoom) || 1));
       const dw = s.w * z, dh = s.h * z;
       ctx.drawImage(s.canvas, PX + (PW - dw) / 2, PY + (PH - dh) / 2, dw, dh);
     }
@@ -207,6 +207,9 @@ export function createBook({ width = 1920, height = 1080 } = {}) {
     if (fw > 0.25) {
       const fx = PX + left;
       ctx.save();
+      ctx.beginPath();
+      ctx.rect(PX, PY, PW, PH); // the flap's shadow falls on the page, never on the desk
+      ctx.clip();
       ctx.shadowColor = `rgba(0,0,0,${0.35 * lift})`;
       ctx.shadowBlur = 24 * u * lift;
       ctx.shadowOffsetX = -14 * u * lift;

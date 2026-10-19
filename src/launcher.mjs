@@ -11,10 +11,14 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 export const PORTS = Array.from({ length: 11 }, (_, i) => 4848 + i);
 const RUNTIME = fileURLToPath(new URL("../../runtime/", import.meta.url)); // <install>\runtime next to <install>\app
 
+const VERSION = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+
+/** True when a Kid Factory of this same version answers on the port (another copy or version is left alone). */
 export async function isOurs(port) {
   try {
     const r = await fetch(`http://127.0.0.1:${port}/api/state`, { signal: AbortSignal.timeout(2000) });
-    return r.ok && "savedIdeas" in (await r.json());
+    const s = r.ok ? await r.json() : {};
+    return "savedIdeas" in s && s.version === VERSION;
   } catch {
     return false;
   }

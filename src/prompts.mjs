@@ -89,7 +89,7 @@ For each idea give:
 - title: a short, catchy Thai title of 2 to 6 words.
 - pitch: one short Thai sentence that makes a child say "อยากฟัง!": show the fun problem or surprise, not the moral.
 
-Fun first, never a lecture. Gentle and safe for small children, who copy what they watch: the characters only eat food an adult gives them (never plants they pick), are gentle with animals, never treat medicine as candy, never climb high or go near roads, water, fire or knives, and never go off alone or with strangers. If the topic is unsafe, scary or odd, quietly turn it into a gentle, kid-safe version of the same idea. The boy is never named.
+Fun first, never a lecture. Gentle and safe for small children, who copy what they watch: the characters only eat food an adult gives them (never plants they pick), are gentle with animals, never treat medicine as candy, never climb high or go near roads, water, fire, stoves, knives or electric sockets, and never go off alone or with strangers. If the topic is unsafe, scary or odd, quietly turn it into a gentle, kid-safe version of the same idea. The boy is never named.
 Return JSON only.`;
 }
 

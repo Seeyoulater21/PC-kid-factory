@@ -60,6 +60,7 @@ let ideasFound = null;     // latest 3 ideas
 let ideaPicked = null;     // index into ideasFound
 let topicText = "";
 let poll = null;           // {id, timer}
+let routeToken = 0;        // a slow screen load that is no longer the current route is dropped
 
 function stopPoll() {
   if (poll) clearInterval(poll.timer);
@@ -67,15 +68,21 @@ function stopPoll() {
 }
 
 async function route() {
+  const token = ++routeToken;
   stopPoll();
+  stopMusic();
   idle();
   app.classList.remove("wide");
+  let s;
   try {
-    state = await api("GET", "/api/state");
+    s = await api("GET", "/api/state");
   } catch (e) {
+    if (token !== routeToken) return;
     app.innerHTML = "";
     return showError(e);
   }
+  if (token !== routeToken) return;
+  state = s;
   $("#fakeBadge").hidden = !state.fake;
   $("#keyLink").hidden = !state.hasKey;
   $("#ver").textContent = `v${state.version}`;
@@ -92,8 +99,8 @@ async function route() {
   const h = location.hash || "#/";
   let m;
   if (!state.hasKey || h === "#/key") return keyScreen();
-  if ((m = h.match(/^#\/ep\/([^/]+)\/video$/))) return episodeScreen(m[1], "video");
-  if ((m = h.match(/^#\/ep\/([^/]+)$/))) return episodeScreen(m[1], "room");
+  if ((m = h.match(/^#\/ep\/([^/]+)\/video$/))) return episodeScreen(m[1], "video", token);
+  if ((m = h.match(/^#\/ep\/([^/]+)$/))) return episodeScreen(m[1], "room", token);
   if (h === "#/new") return newScreen();
   return homeScreen();
 }
@@ -332,15 +339,20 @@ let sel = 1;          // selected page (1-based)
 let ver = {};         // cache-busters per media file
 let wasRunning = {};
 
-async function episodeScreen(id, tab) {
+async function episodeScreen(id, tab, token) {
+  let e1, j1;
   try {
-    ep = await api("GET", `/api/episodes/${encodeURIComponent(id)}`);
-    job = await api("GET", `/api/episodes/${encodeURIComponent(id)}/job`);
+    e1 = await api("GET", `/api/episodes/${encodeURIComponent(id)}`);
+    j1 = await api("GET", `/api/episodes/${encodeURIComponent(id)}/job`);
   } catch (e) {
+    if (token !== routeToken) return;
     showError(e);
     location.hash = "#/";
     return;
   }
+  if (token !== routeToken) return; // the user already went somewhere else
+  ep = e1;
+  job = j1;
   if (!ep.story.pages[sel - 1] || app.dataset.ep !== id) sel = 1;
   app.dataset.ep = id;
   ver = {};
@@ -500,7 +512,7 @@ function roomShell() {
       </div>
     </div>`;
   $("#allImages").onclick = () => startJob("images");
-  $("#allVoices").onclick = () => startJob("voices");
+  $("#allVoices").onclick = async () => { await saveNarration(); startJob("voices"); };
   $("#oneImage").onclick = () => startJob("images", { pages: [sel] });
   $("#oneVoice").onclick = async () => { await saveNarration(); startJob("voices", { pages: [sel] }); };
   $("#play").onclick = playVoice;
@@ -530,7 +542,11 @@ async function saveNarration() {
     ep = await api("PATCH", `/api/episodes/${encodeURIComponent(ep.id)}/pages/${n}`, { narration: text });
     if (sel === n) $("#savedNote").textContent = "บันทึกแล้ว ✓ อย่าลืมกด ↻ เสียงใหม่";
     roomUpdate();
-  } catch (e) { showError(e); }
+  } catch (e) {
+    // a note keeps the typed text on screen (the next poll would otherwise put the old text back)
+    if (sel === n) $("#savedNote").textContent = "⚠ ยังไม่ได้บันทึก";
+    showError(e);
+  }
 }
 
 function loadPage() {
@@ -643,6 +659,7 @@ async function videoShell() {
     <div class="music-row">
       <span>เพลงประกอบ:</span>
       <select id="music"></select>
+      <button id="listen" class="btn g small">▶ ฟัง</button>
       <span class="muted">(จากคลัง เลือกให้ตามอารมณ์เรื่องแล้ว)</span>
     </div>
     <div id="videoBox"></div>
@@ -656,7 +673,25 @@ async function videoShell() {
   musicSel.innerHTML = tracks.length
     ? tracks.map((t) => `<option value="${esc(t.id)}" ${t.id === pick ? "selected" : ""}>${esc(trackName(t))}${t.mood === ep.story.mood ? " · เข้ากับเรื่อง" : ""}</option>`).join("")
     : `<option value="">ไม่มีเพลง (วิดีโอจะมีแต่เสียงเล่า)</option>`;
+  const listen = $("#listen");
+  listen.disabled = !tracks.length;
+  listen.onclick = () => {
+    if (musicPlayer) return stopMusic();
+    musicPlayer = new Audio(`/music/${encodeURIComponent(musicSel.value)}.mp3`);
+    musicPlayer.onended = stopMusic;
+    musicPlayer.play().catch(() => { stopMusic(); showError(new Error("เล่นเพลงไม่ได้")); });
+    listen.textContent = "■ หยุด";
+  };
+  musicSel.onchange = stopMusic;
   videoUpdate();
+}
+
+let musicPlayer = null;
+function stopMusic() {
+  musicPlayer?.pause();
+  musicPlayer = null;
+  const b = $("#listen");
+  if (b) b.textContent = "▶ ฟัง";
 }
 
 function videoUpdate() {
@@ -694,6 +729,7 @@ function videoUpdate() {
 
   const btn = $("#renderBtn");
   btn.onclick = () => {
+    stopMusic();
     const musicId = $("#music")?.value || undefined;
     $("#playerBox").innerHTML = "";
     startJob("render", { musicId });

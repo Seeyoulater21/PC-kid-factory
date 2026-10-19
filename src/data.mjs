@@ -12,13 +12,33 @@ export function dataDir() {
 
 const configPath = () => path.join(dataDir(), "config.json");
 
-export function readConfig() {
+/** Moves a file that cannot be read as JSON to <name>.broken-<time><ext>, so the next save cannot destroy it. */
+export function moveAside(file) {
+  const { dir, name, ext } = path.parse(file);
   try {
-    const c = JSON.parse(fs.readFileSync(configPath(), "utf8"));
-    return c && typeof c === "object" && !Array.isArray(c) ? c : {};
+    fs.renameSync(file, path.join(dir, `${name}.broken-${Date.now()}${ext}`));
+  } catch {}
+}
+
+/** Parsed JSON of file, or fallback when it is missing; a broken file is moved aside first. */
+export function readJsonFile(file, fallback) {
+  let text;
+  try {
+    text = fs.readFileSync(file, "utf8");
   } catch {
-    return {};
+    return fallback;
   }
+  try {
+    return JSON.parse(text);
+  } catch {
+    moveAside(file);
+    return fallback;
+  }
+}
+
+export function readConfig() {
+  const c = readJsonFile(configPath(), {});
+  return c && typeof c === "object" && !Array.isArray(c) ? c : {};
 }
 
 export function saveKey(key) {

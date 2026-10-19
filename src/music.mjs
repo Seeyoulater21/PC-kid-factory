@@ -15,6 +15,7 @@ const LYRIA_LICENCE =
 const SEED_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "assets", "music");
 
 const musicDir = () => path.join(dataDir(), "music");
+const SAFE_ID = /^[A-Za-z0-9_-]+$/;
 const jsonPath = (id) => path.join(musicDir(), `${id}.json`);
 const mp3Path = (id) => path.join(musicDir(), `${id}.mp3`);
 
@@ -41,21 +42,30 @@ export function listTracks() {
     if (!f.endsWith(".json")) continue;
     try {
       const t = JSON.parse(fs.readFileSync(path.join(musicDir(), f), "utf8"));
-      if (t && t.id && fs.existsSync(mp3Path(t.id))) out.push(t);
-    } catch {}
+      if (t && SAFE_ID.test(t.id ?? "") && fs.existsSync(mp3Path(t.id))) out.push(t);
+      else console.warn(`[music] skipped ${f}: no safe id or no mp3`);
+    } catch {
+      console.warn(`[music] skipped ${f}: not valid JSON`);
+    }
   }
   return out.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 export function addTrack(track, mp3) {
   if (!track || !MOODS.includes(track.mood)) throw new Error("track needs a valid mood");
-  if (!track.id || !/^[A-Za-z0-9_-]+$/.test(track.id)) throw new Error("track needs a safe id");
+  if (!track.id || !SAFE_ID.test(track.id)) throw new Error("track needs a safe id");
   if (!SOURCES.includes(track.source)) throw new Error("track needs a valid source");
   if (!track.licence || typeof track.licence !== "string") throw new Error("track needs a licence");
   seedLibrary();
+  if (fs.existsSync(mp3Path(track.id)) || fs.existsSync(jsonPath(track.id))) throw new Error(`track ${track.id} exists`);
   fs.writeFileSync(mp3Path(track.id), mp3);
   fs.writeFileSync(jsonPath(track.id), JSON.stringify(track, null, 2));
   return track;
+}
+
+/** The mp3 of a library track, or null for an unknown id. */
+export function trackFile(id) {
+  return listTracks().some((t) => t.id === id) ? mp3Path(id) : null;
 }
 
 // Least recently used track of the mood; never-used tracks come first.

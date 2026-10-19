@@ -125,3 +125,17 @@ test("works at small sizes", () => {
   for (const k of [0, 0.1, 0.5, 0.9, 1]) book.turn(ctx, { from: RED, fromZoom: 1.06, to: BLUE, progress: k });
   assert.ok(px(ctx, 160, 90)[2] > 150);
 });
+
+test("zoom outside 1–1.06 is clamped", () => {
+  const book = createBook({ width: W, height: H });
+  const img = stripes();
+  const a = fresh(), b = fresh(), c = fresh(), d = fresh();
+  book.frame(a, { page: img, zoom: 1.06 });
+  book.frame(b, { page: img, zoom: 3 });
+  book.frame(c, { page: img, zoom: 1 });
+  book.frame(d, { page: img, zoom: 0.5 });
+  for (const [x, y] of insidePoints()) {
+    near(px(a, x, y), px(b, x, y), 0, `max ${x},${y}`);
+    near(px(c, x, y), px(d, x, y), 0, `min ${x},${y}`);
+  }
+});

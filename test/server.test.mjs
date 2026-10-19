@@ -241,6 +241,16 @@ test("pick a voice take: the page gets back that take's text; refused while rend
   await waitJob(api, id, "render");
 });
 
+test("music route plays a library track for listening; unknown or unsafe ids are 404", async (t) => {
+  const { api, base } = await start(t);
+  const id = (await api("GET", "/api/music")).json.tracks[0].id;
+  const r = await fetch(`${base}/music/${id}.mp3`);
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get("content-type"), "audio/mpeg");
+  assert.equal((await fetch(`${base}/music/nope.mp3`)).status, 404);
+  assert.equal(await raw(base, "/music/..%2Fconfig.json"), 404);
+});
+
 test("media route serves episode files with ranges and blocks ../ traversal", async (t) => {
   const { api, base, root } = await start(t);
   const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });

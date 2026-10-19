@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { dataDir, renameRetry } from "./data.mjs";
+import { dataDir, renameRetry, readJsonFile } from "./data.mjs";
 
 const episodesDir = () => path.join(dataDir(), "episodes");
 const ID_RE = /^ep-\d{8}-\d{6}(-\d+)?$/;
@@ -9,6 +9,8 @@ const epDir = (id) => {
   return path.join(episodesDir(), id);
 };
 const ideasPath = () => path.join(dataDir(), "saved-ideas.json");
+// highest episode number ever given, so deleting the newest episode never frees its number again
+const counterPath = () => path.join(dataDir(), "episode-counter.json");
 
 let tmpCounter = 0;
 // Atomic write: temp file in the same folder, then rename over the target.
@@ -44,9 +46,12 @@ function loadAll() {
 
 const numberOf = (ep) => (Number.isInteger(ep.number) && ep.number > 0 ? ep.number : null);
 
-// Highest number among existing episodes + 1 (episodes from before numbering count as 0).
+// Highest number ever given (existing episodes or the counter) + 1; episodes from before numbering count as 0.
 function nextNumber() {
-  return loadAll().reduce((m, ep) => Math.max(m, numberOf(ep) ?? 0), 0) + 1;
+  const last = Number(readJsonFile(counterPath(), {}).last) || 0;
+  const n = loadAll().reduce((m, ep) => Math.max(m, numberOf(ep) ?? 0), last) + 1;
+  writeJson(counterPath(), { last: n });
+  return n;
 }
 
 export function createEpisode(idea, story) {
@@ -162,12 +167,8 @@ export function editNarration(ep, n, text) {
 }
 
 export function listSavedIdeas() {
-  try {
-    const a = JSON.parse(fs.readFileSync(ideasPath(), "utf8"));
-    return Array.isArray(a) ? a : [];
-  } catch {
-    return [];
-  }
+  const a = readJsonFile(ideasPath(), []);
+  return Array.isArray(a) ? a : [];
 }
 
 export function saveIdeas(ideas) {

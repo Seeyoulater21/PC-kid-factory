@@ -131,12 +131,12 @@ test("episode numbers count up from 1; old episodes without a number do not brea
   delete old.number;
   saveEpisode(old);
   const b = createEpisode(sample.idea, sample.story);
-  assert.equal(b.number, 2);
+  assert.equal(b.number, 3); // number 2 was given out once (to `old`) and is never given again
   const l = listEpisodes();
-  assert.deepEqual(l.map((e) => e.number), [2, 1, null]);
+  assert.deepEqual(l.map((e) => e.number), [3, 1, null]);
   assert.equal(l[2].id, old.id);
   fs.rmSync(path.join(d, "episodes", a.id), { recursive: true });
-  assert.equal(createEpisode(sample.idea, sample.story).number, 3);
+  assert.equal(createEpisode(sample.idea, sample.story).number, 4);
 });
 
 test("episodeStatus: written → in progress → ready → done → needs re-render", () => {
@@ -215,4 +215,25 @@ test("episodeStatus: picking another take after the render asks for a new render
   assert.equal(episodeStatus(ep), "วิดีโอเสร็จ");
   p.image.pickedAt = Date.now() + 1000;
   assert.equal(episodeStatus(ep), "ต้องประกอบใหม่");
+});
+
+test("a broken saved-ideas file is moved aside before the next save", () => {
+  const d = tmp();
+  fs.writeFileSync(path.join(d, "saved-ideas.json"), "[{");
+  assert.deepEqual(listSavedIdeas(), []);
+  saveIdeas([{ title: "a", pitch: "b" }]);
+  assert.deepEqual(listSavedIdeas(), [{ title: "a", pitch: "b" }]);
+  const aside = fs.readdirSync(d).filter((f) => f.startsWith("saved-ideas.broken-"));
+  assert.equal(aside.length, 1);
+  assert.equal(fs.readFileSync(path.join(d, aside[0]), "utf8"), "[{");
+});
+
+test("deleting the newest episode does not let the next one reuse its number", () => {
+  const d = tmp();
+  createEpisode(sample.idea, sample.story);
+  const b = createEpisode(sample.idea, sample.story);
+  assert.equal(b.number, 2);
+  fs.rmSync(path.join(d, "episodes", b.id), { recursive: true });
+  assert.equal(createEpisode(sample.idea, sample.story).number, 3);
+  assert.equal(listEpisodes().length, 2);
 });

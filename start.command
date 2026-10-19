@@ -24,16 +24,19 @@ fi
 
 BASE=4848
 LAST=4858
-is_ours() { curl -s -m 2 "http://127.0.0.1:$1/api/state" 2>/dev/null | grep -q '"savedIdeas"'; }
+VERSION=$(node -p 'require("./package.json").version')
+# a Kid Factory of this same version (another copy or version on the port is left alone)
+is_ours() { curl -s -m 2 "http://127.0.0.1:$1/api/state" 2>/dev/null | grep '"savedIdeas"' | grep -q "\"version\":\"$VERSION\""; }
+app_dir() { for d in "/Applications/$1.app" "$HOME/Applications/$1.app"; do [ -d "$d" ] && return 0; done; return 1; }
 
 open_window() {
   local url="$1"
   [ "$KIDFACTORY_NO_WINDOW" = "1" ] && return 0
   local profile="$HOME/Library/Application Support/KidFactory-chrome"
   mkdir -p "$profile"
-  if [ -d "/Applications/Google Chrome.app" ]; then
+  if app_dir "Google Chrome"; then
     open -na "Google Chrome" --args --app="$url" --user-data-dir="$profile"
-  elif [ -d "/Applications/Microsoft Edge.app" ]; then
+  elif app_dir "Microsoft Edge"; then
     open -na "Microsoft Edge" --args --app="$url" --user-data-dir="$profile"
   else
     open "$url"

@@ -64,3 +64,15 @@ test("renameRetry retries a briefly locked file (EPERM/EBUSY), then gives up", (
   assert.throws(() => renameRetry("a", "b"), { code: "ENOENT" });
   assert.equal(calls, 1);
 });
+
+test("a broken config.json is moved aside, never overwritten by the next save", () => {
+  const d = tmp();
+  fs.writeFileSync(path.join(d, "config.json"), '{"key": "abc", "other"');
+  assert.deepEqual(readConfig(), {});
+  const aside = fs.readdirSync(d).filter((f) => f.startsWith("config.broken-"));
+  assert.equal(aside.length, 1);
+  assert.equal(fs.readFileSync(path.join(d, aside[0]), "utf8"), '{"key": "abc", "other"');
+  saveKey("new");
+  assert.equal(readConfig().key, "new");
+  assert.equal(fs.readdirSync(d).filter((f) => f.startsWith("config.broken-")).length, 1);
+});

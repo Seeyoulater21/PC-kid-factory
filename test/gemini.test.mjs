@@ -139,3 +139,17 @@ test("generic refusal and empty texts are neutral (no page wording)", async () =
   r = await fail([reply(200, out({ type: "text", text: "no image" }))], (g) => g.image("p", []));
   assert.equal(r.e.thai, "Gemini ไม่ส่งผลลัพธ์กลับมา ลองใหม่");
 });
+
+test("a per-minute quota 429 is a busy moment: retried, not 'credit'", async () => {
+  const ok = reply(200, out({ type: "text", text: '{"a":1}' }));
+  const { g, f } = make([reply(429, { error: { message: "Quota exceeded for metric generate_requests_per_minute, please check your plan and billing details", code: "resource_exhausted" } }), ok]);
+  assert.deepEqual(await g.json(MODELS.ideas, "hi", {}), { a: 1 });
+  assert.equal(f.calls.length, 2);
+});
+
+test("a timeout says Gemini was too slow, not 'no internet'", async () => {
+  const e = Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" });
+  const r = await fail([e]);
+  check(r.e, "slow");
+  assert.equal(r.e.thai, "Gemini ตอบช้าเกินไป ลองใหม่อีกครั้ง");
+});

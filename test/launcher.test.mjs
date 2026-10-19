@@ -67,3 +67,17 @@ function readyLine(p) {
     p.on("exit", (code) => reject(new Error(`launcher exited ${code}: ${out}`)));
   });
 }
+
+test("isOurs only reuses a Kid Factory of the same version", async (t) => {
+  const http = await import("node:http");
+  const { isOurs } = await import("../src/launcher.mjs");
+  const version = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+  let reply = { savedIdeas: [], version };
+  const s = http.createServer((req, res) => { res.setHeader("content-type", "application/json"); res.end(JSON.stringify(reply)); });
+  await new Promise((r) => s.listen(0, "127.0.0.1", r));
+  t.after(() => s.close());
+  const port = s.address().port;
+  assert.equal(await isOurs(port), true);
+  reply = { savedIdeas: [], version: "0.0.1" };
+  assert.equal(await isOurs(port), false);
+});

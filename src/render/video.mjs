@@ -44,10 +44,20 @@ export function outputName(ep) {
 const ownThai = (message, extra = {}) => Object.assign(new Error(message), { thai: true }, extra);
 const fail = (detail) => ownThai(RENDER_FAILED, { detail: String(detail || "").slice(-2000) });
 
+// A hung ffmpeg is killed, so the render fails with the usual Thai message instead of blocking the episode.
+const TOOL_TIMEOUT_MS = 10 * 60_000;
+const ENCODE_TIMEOUT_MS = 30 * 60_000;
+function killAfter(child, ms) {
+  const t = setTimeout(() => child.kill("SIGKILL"), ms);
+  t.unref(); // never keeps the app (or a test run) alive by itself
+  child.on("exit", () => clearTimeout(t));
+}
+
 // Run a tool to completion; resolves with stdout/stderr text, rejects (Thai message, detail = stderr tail).
 function run(cmd, args) {
   return new Promise((resolve, reject) => {
     const p = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
+    killAfter(p, TOOL_TIMEOUT_MS);
     let out = "", err = "";
     p.stdout.on("data", (d) => { out += d; });
     p.stderr.on("data", (d) => { err = (err + d).slice(-20000); });
@@ -178,6 +188,7 @@ const muxArgs = ({ video, audio, out }) => [
 
 async function encode({ args, frames, draw, onFrame, stopIf }) {
   const ff = spawn(FFMPEG(), args, { stdio: ["pipe", "ignore", "pipe"] });
+  killAfter(ff, ENCODE_TIMEOUT_MS);
   let err = "";
   ff.stderr.on("data", (d) => { err = (err + d).slice(-20000); });
   ff.stdin.on("error", () => {}); // EPIPE when ffmpeg dies early; the exit code tells the story
