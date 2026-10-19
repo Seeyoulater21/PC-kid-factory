@@ -243,3 +243,17 @@ test("a counter file holding null does not stop new episodes", () => {
   fs.writeFileSync(path.join(d, "episode-counter.json"), "null");
   assert.equal(createEpisode(sample.idea, sample.story).number, 1);
 });
+
+test("episodeStatus: changing the look after the render asks for a new render", () => {
+  const d = tmp();
+  const ep = createEpisode(sample.idea, { ...sample.story, pages: sample.story.pages.slice(0, 1) });
+  const dir = path.join(d, "episodes", ep.id);
+  for (const f of ["img/p01.jpg", "voice/p01.wav", "out/EP01 x.mp4"]) fs.writeFileSync(path.join(dir, f), "x");
+  const p = ep.story.pages[0];
+  p.image = { state: "done", file: "img/p01.jpg" };
+  p.voice = { state: "done", file: "voice/p01.wav", seconds: 1, forText: p.narration };
+  ep.video = { file: "out/EP01 x.mp4" };
+  assert.equal(episodeStatus(ep), "วิดีโอเสร็จ");
+  ep.lookAt = Date.now() + 1000;
+  assert.equal(episodeStatus(ep), "ต้องประกอบใหม่");
+});

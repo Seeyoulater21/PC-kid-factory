@@ -147,7 +147,7 @@ export function episodeStatus(ep) {
     .filter(Boolean)
     .reduce((t, f) => Math.max(t, mtime(path.join(dir, f)) ?? 0), 0);
   // picking an older take changes the video too, though its file is old
-  const picked = pages.reduce((t, p) => Math.max(t, p.image?.pickedAt ?? 0, p.voice?.pickedAt ?? 0), 0);
+  const picked = pages.reduce((t, p) => Math.max(t, p.image?.pickedAt ?? 0, p.voice?.pickedAt ?? 0), ep.lookAt ?? 0);
   return out >= Math.max(changed, picked) ? "วิดีโอเสร็จ" : "ต้องประกอบใหม่";
 }
 

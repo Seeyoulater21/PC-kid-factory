@@ -1,4 +1,4 @@
-// Draws one video frame: a picture book lying on a dark wooden desk.
+// Draws one video frame: a picture book lying on a desk (dark wood or a pastel colour), or the picture full screen.
 // Hold frame = picture (slow zoom) printed on paper; turn frame = 2D paper page turn (fold travels right→left).
 // Geometry and look follow docs/superpowers/specs/page-flip-reference.html (prototype is 960×540; u scales it).
 import { createCanvas } from "@napi-rs/canvas";
@@ -8,21 +8,34 @@ export const ZOOM_MAX = 1.06;
 const PAPER_OPACITY = 0.55;
 const SPINE = { width: 0.06, alpha: 0.28 };
 
+// video looks, chosen per episode; desk gradient centre → edge ("full" has no desk)
+export const DEFAULT_LOOK = "wood";
+const DESKS = {
+  wood: ["#4a3a2c", "#241a12"],
+  pink: ["#f8dde3", "#e8b9c4"],
+  blue: ["#dbeaf7", "#a9c7e3"],
+  cream: ["#f8f0de", "#e4d3ae"],
+  mint: ["#dcf2e4", "#a8d8bd"],
+};
+export const LOOKS = [...Object.keys(DESKS), "full"];
+
 export const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
 const clamp01 = (v) => Math.min(1, Math.max(0, Number(v) || 0));
 
-function drawDesk(ctx, W, H, u) {
-  // radial-gradient(ellipse at 50% 40%, #4a3a2c, #241a12), farthest-corner
+function drawDesk(ctx, W, H, u, look) {
+  // radial-gradient(ellipse at 50% 40%, centre, edge), farthest-corner
+  const [c0, c1] = DESKS[look];
   ctx.save();
   const cx = W / 2, cy = H * 0.4, rx = Math.SQRT2 * W / 2, ry = Math.SQRT2 * H * 0.6;
   ctx.translate(cx, cy);
   ctx.scale(1, ry / rx);
   const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
-  g.addColorStop(0, "#4a3a2c");
-  g.addColorStop(1, "#241a12");
+  g.addColorStop(0, c0);
+  g.addColorStop(1, c1);
   ctx.fillStyle = g;
   ctx.fillRect(-cx, -cy * rx / ry, W, H * rx / ry);
   ctx.restore();
+  if (look !== "wood") return;
 
   // subtle wood grain: wavy horizontal streaks, multiplied in
   const rand = rng(91);
@@ -77,19 +90,23 @@ function drawStack(ctx, x, y, w, h, vertical, u, rand) {
   ctx.restore();
 }
 
-export function createBook({ width = 1920, height = 1080 } = {}) {
+export function createBook({ width = 1920, height = 1080, look = DEFAULT_LOOK } = {}) {
   const W = Math.round(width), H = Math.round(height);
   const u = H / 540;
-  const page = { x: Math.round(W * 0.04), y: Math.round(H * 0.06) };
+  if (!LOOKS.includes(look)) look = DEFAULT_LOOK;
+  const full = look === "full";
+  // full screen: the page is the whole frame, no book around it
+  const page = full ? { x: 0, y: 0 } : { x: Math.round(W * 0.04), y: Math.round(H * 0.06) };
   page.w = W - 2 * page.x;
   page.h = H - 2 * page.y;
   const { x: PX, y: PY, w: PW, h: PH } = page;
+  const spineAlpha = full ? 0 : SPINE.alpha;
 
-  // static layer: desk, book shadow, page-stack edges
+  // static layer: desk, book shadow, page-stack edges (full screen: nothing shows behind the page)
   const base = createCanvas(W, H);
-  {
+  if (!full) {
     const ctx = base.getContext("2d");
-    drawDesk(ctx, W, H, u);
+    drawDesk(ctx, W, H, u, look);
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.55)";
     ctx.shadowBlur = 40 * u;
@@ -117,7 +134,7 @@ export function createBook({ width = 1920, height = 1080 } = {}) {
     for (let y = 0; y < PH; y++) {
       for (let x = 0; x < PW; x++) {
         const o = (y * PW + x) * 4;
-        const spine = x < sw ? 1 - SPINE.alpha * (1 - x / sw) : 1;
+        const spine = x < sw ? 1 - spineAlpha * (1 - x / sw) : 1;
         for (let c = 0; c < 3; c++) d[o + c] = (1 - PAPER_OPACITY + PAPER_OPACITY * src[o + c] / 255) * spine * 255;
         d[o + 3] = 255;
       }

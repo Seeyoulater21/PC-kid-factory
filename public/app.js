@@ -653,6 +653,10 @@ async function pickTake(kind, take) {
 
 // ---------- 4 · assemble ----------
 let tracks = null;
+const LOOKS = [
+  ["wood", "โต๊ะไม้สีน้ำตาล"], ["pink", "พื้นชมพูพาสเทล"], ["blue", "พื้นฟ้าพาสเทล"],
+  ["cream", "พื้นสีครีม"], ["mint", "พื้นเขียวมินต์"], ["full", "เต็มจอ ไม่มีขอบ"],
+];
 
 async function videoShell() {
   $("#screen").innerHTML = `
@@ -663,8 +667,25 @@ async function videoShell() {
       <button id="listen" class="btn g small">▶ ฟัง</button>
       <span class="muted">(จากคลัง เลือกให้ตามอารมณ์เรื่องแล้ว)</span>
     </div>
+    <div class="music-row" style="margin-top:8px">
+      <span>แบบหนังสือ:</span>
+      <select id="look">${LOOKS.map(([id, name]) => `<option value="${id}" ${id === ep.look ? "selected" : ""}>${name}</option>`).join("")}</select>
+    </div>
     <div id="videoBox"></div>
     <div id="playerBox"></div>`;
+  const lookSel = $("#look");
+  lookSel.onchange = async () => {
+    const was = ep.id;
+    try {
+      const next = await api("PATCH", `/api/episodes/${encodeURIComponent(was)}/look`, { look: lookSel.value });
+      if (ep?.id !== was) return;
+      ep = next;
+      videoUpdate();
+    } catch (e) {
+      lookSel.value = ep.look;
+      showError(e);
+    }
+  };
   try {
     tracks = (await api("GET", "/api/music")).tracks;
   } catch (e) { tracks = []; showError(e); }

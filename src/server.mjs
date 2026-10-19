@@ -6,7 +6,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { Worker } from "node:worker_threads";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { dataDir, readConfig, saveKey, hasKey } from "./data.mjs";
+import { dataDir, readConfig, saveKey, saveConfig, hasKey } from "./data.mjs";
 import { createGemini, GeminiError } from "./gemini.mjs";
 import { createFakeGemini } from "./fake-gemini.mjs";
 import { ideas, writeStory, estimateSeconds } from "./story.mjs";
@@ -17,6 +17,7 @@ import {
 import { makeImages, makeVoices, staleVoices, estimateCost, pickTake } from "./pages.mjs";
 import { listTracks, trackFile } from "./music.mjs";
 import { chooseMusic } from "./render/video.mjs";
+import { LOOKS, DEFAULT_LOOK } from "./render/book.mjs";
 import { buildTimeline, timelineSeconds, TIMING } from "./timeline.mjs";
 import { checkUpdate, stageUpdate, startSwap, canSelfUpdate, currentVersion, takeResult } from "./update.mjs";
 
@@ -159,6 +160,7 @@ export function createServer(opts = {}) {
     const book = real ? timelineSeconds(buildTimeline(pages.map((p) => p.voice.seconds))) : estimateSeconds(pages);
     const out = {
       ...ep,
+      look: LOOKS.includes(ep.look) ? ep.look : DEFAULT_LOOK,
       staleVoices: stale,
       seconds: book + TIMING.intro + TIMING.outro,
       lengthReal: real,
@@ -286,6 +288,11 @@ export function createServer(opts = {}) {
       if (keep.length) saveIdeas(keep); // the choice to keep stands even if the story fails
       const story = await writeStory(g, idea);
       const ep = createEpisode(idea, story);
+      const last = readConfig().lastLook;
+      if (LOOKS.includes(last)) {
+        ep.look = last;
+        saveEpisode(ep);
+      }
       live.set(ep.id, ep);
       if (listSavedIdeas().some((i) => i.title === idea.title)) removeSavedIdea(idea.title);
       return { id: ep.id };
@@ -314,6 +321,18 @@ export function createServer(opts = {}) {
         if (page.voice?.state !== "working") page.voice = next.voice;
         saveEpisode(ep);
       }
+      return view(ep);
+    }],
+    ["PATCH", /^\/api\/episodes\/([^/]+)\/look$/, (m, body) => {
+      const ep = getEp(m[1]);
+      if (!LOOKS.includes(body.look)) throw new HttpError(400, T.badData);
+      if (running(ep.id, "render")) throw new HttpError(409, T.busy);
+      if (body.look !== (ep.look ?? DEFAULT_LOOK)) {
+        ep.look = body.look;
+        ep.lookAt = Date.now(); // a video made before this needs a new render
+        saveEpisode(ep);
+      }
+      saveConfig({ lastLook: body.look });
       return view(ep);
     }],
     ["POST", /^\/api\/episodes\/([^/]+)\/pages\/(\d+)\/pick$/, (m, body) => {

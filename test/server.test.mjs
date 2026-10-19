@@ -461,3 +461,31 @@ test("POST /api/update when already up to date does nothing", async (t) => {
   assert.deepEqual((await api("POST", "/api/update", {})).json, { upToDate: true, current: "0.3.0" });
   assert.deepEqual(u.calls, []);
 });
+
+test("look: saved per episode, remembered for the next episode, bad look is 400, sent to the renderer", async (t) => {
+  let seen = null;
+  const render = async (ep) => {
+    seen = ep;
+    return path.join(process.env.KIDFACTORY_DATA, "episodes", ep.id, "out", "x.mp4");
+  };
+  const { api } = await start(t, { render });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  assert.equal((await api("GET", `/api/episodes/${id}`)).json.look, "wood");
+  assert.equal((await api("PATCH", `/api/episodes/${id}/look`, { look: "space" })).status, 400);
+  const r = await api("PATCH", `/api/episodes/${id}/look`, { look: "full" });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.look, "full");
+  assert.equal(loadEpisode(id).look, "full");
+  assert.ok(loadEpisode(id).lookAt > 0);
+  // the next episode starts with the last look used
+  const { json: { id: id2 } } = await api("POST", "/api/episodes", { idea: sample.ideas[1], keep: [] });
+  assert.equal((await api("GET", `/api/episodes/${id2}`)).json.look, "full");
+  await api("PATCH", `/api/episodes/${id2}/look`, { look: "mint" });
+  await api("POST", `/api/episodes/${id}/render`, {});
+  await waitJob(api, id, "render");
+  assert.equal(seen.look, "full");
+  // picking the same look again changes nothing
+  const before = loadEpisode(id2).lookAt;
+  await api("PATCH", `/api/episodes/${id2}/look`, { look: "mint" });
+  assert.equal(loadEpisode(id2).lookAt, before);
+});

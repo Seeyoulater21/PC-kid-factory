@@ -139,3 +139,39 @@ test("zoom outside 1–1.06 is clamped", () => {
     near(px(c, x, y), px(d, x, y), 0, `min ${x},${y}`);
   }
 });
+
+test("full-screen look: the picture reaches every edge, no desk or book", () => {
+  const book = createBook({ width: W, height: H, look: "full" });
+  assert.deepEqual(book.page, { x: 0, y: 0, w: W, h: H });
+  const ctx = fresh();
+  book.frame(ctx, { page: RED, zoom: 1 });
+  for (const [x, y] of [[1, 1], [W - 2, 1], [1, H - 2], [W - 2, H - 2], [W / 2, 2]]) {
+    const [r, g, b] = px(ctx, x, y);
+    assert.ok(r > 150 && g < 60 && b < 60, `edge ${x},${y}: ${r},${g},${b}`);
+  }
+  // no spine shade: the left edge is as bright as the middle
+  assert.ok(Math.abs(px(ctx, 2, H / 2)[0] - px(ctx, W / 2, H / 2)[0]) < 25);
+  // the turn still shows the light paper flap mid-way, now across the whole frame
+  book.turn(ctx, { from: RED, to: BLUE, progress: 0.5 });
+  const [r, g, b] = px(ctx, W * 0.25, H / 2);
+  assert.ok(r > 150 && g > 150 && b > 140, `flap ${r},${g},${b}`);
+});
+
+test("colour looks: the desk around the book takes the chosen pastel colour", () => {
+  const corner = (look) => {
+    const ctx = fresh();
+    createBook({ width: W, height: H, look }).frame(ctx, { page: RED });
+    return px(ctx, 10, H / 2);
+  };
+  const wood = corner("wood");
+  assert.ok(wood[0] < 110, `wood is dark: ${wood}`);
+  const pink = corner("pink"), blue = corner("blue"), cream = corner("cream"), mint = corner("mint");
+  for (const c of [pink, blue, cream, mint]) assert.ok(c[0] + c[1] + c[2] > 450, `light: ${c}`);
+  assert.ok(pink[0] > pink[1] && pink[0] > pink[2], `pink ${pink}`);
+  assert.ok(blue[2] > blue[0], `blue ${blue}`);
+  assert.ok(mint[1] > mint[0] && mint[1] > mint[2], `mint ${mint}`);
+  assert.ok(cream[0] >= cream[1] && cream[1] > cream[2], `cream ${cream}`);
+  // an unknown look falls back to today's wood desk
+  assert.deepEqual(corner("nope"), wood);
+  assert.deepEqual(corner(undefined), wood);
+});

@@ -275,7 +275,7 @@ export async function renderEpisode(ep, { onProgress, width = 1920, height = 108
     audioJob.catch((e) => { audioFailed = e; }); // stops the frame loop early; awaited again below
     const video = path.join(work, "video.mp4");
 
-    const book = createBook({ width: W, height: H });
+    const book = createBook({ width: W, height: H, look: ep.look });
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext("2d");
     // each page decoded once and reused (book.mjs caches its scaled copy by object identity)

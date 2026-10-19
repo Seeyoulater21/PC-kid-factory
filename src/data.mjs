@@ -42,8 +42,13 @@ export function readConfig() {
 }
 
 export function saveKey(key) {
+  saveConfig({ key: String(key).trim() });
+}
+
+/** Merges fields into config.json (owner-only file: it holds the key). */
+export function saveConfig(fields) {
   fs.mkdirSync(dataDir(), { recursive: true });
-  const cfg = { ...readConfig(), key: String(key).trim() };
+  const cfg = { ...readConfig(), ...fields };
   const p = configPath();
   fs.writeFileSync(p, JSON.stringify(cfg, null, 2), { mode: 0o600 });
   fs.chmodSync(p, 0o600); // writeFile keeps the old mode on an existing file
