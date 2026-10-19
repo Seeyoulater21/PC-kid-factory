@@ -476,7 +476,6 @@ test("look: saved per episode, remembered for the next episode, bad look is 400,
   assert.equal(r.status, 200);
   assert.equal(r.json.look, "full");
   assert.equal(loadEpisode(id).look, "full");
-  assert.ok(loadEpisode(id).lookAt > 0);
   // the next episode starts with the last look used
   const { json: { id: id2 } } = await api("POST", "/api/episodes", { idea: sample.ideas[1], keep: [] });
   assert.equal((await api("GET", `/api/episodes/${id2}`)).json.look, "full");
@@ -484,8 +483,20 @@ test("look: saved per episode, remembered for the next episode, bad look is 400,
   await api("POST", `/api/episodes/${id}/render`, {});
   await waitJob(api, id, "render");
   assert.equal(seen.look, "full");
-  // picking the same look again changes nothing
-  const before = loadEpisode(id2).lookAt;
-  await api("PATCH", `/api/episodes/${id2}/look`, { look: "mint" });
-  assert.equal(loadEpisode(id2).lookAt, before);
+  assert.equal(loadEpisode(id).video.look, "full");
+});
+
+test("look cannot change while the video renders", async (t) => {
+  let release;
+  const render = (ep) => new Promise((r) => {
+    release = () => r(path.join(process.env.KIDFACTORY_DATA, "episodes", ep.id, "out", "x.mp4"));
+  });
+  const { api } = await start(t, { render });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  await api("POST", `/api/episodes/${id}/render`, {});
+  assert.equal((await api("PATCH", `/api/episodes/${id}/look`, { look: "pink" })).status, 409);
+  release();
+  await waitJob(api, id, "render");
+  assert.equal(loadEpisode(id).look, undefined);
+  assert.equal((await api("PATCH", `/api/episodes/${id}/look`, { look: "pink" })).status, 200);
 });

@@ -224,12 +224,13 @@ export function createServer(opts = {}) {
     }
     ep.musicId = musicId ?? chooseMusic(ep)?.id ?? null;
     saveEpisode(ep);
+    const look = ep.look ?? DEFAULT_LOOK; // the status compares it with the episode's look later
     const job = { running: true, progress: 0 };
     jobsOf(ep.id).render = job;
     render(structuredClone(ep), (p) => { job.progress = Math.max(job.progress, Math.min(0.99, p)); })
       .then((file) => {
         const rel = path.relative(epRoot(ep.id), file).split(path.sep).join("/");
-        ep.video = { file: rel, at: new Date().toISOString() };
+        ep.video = { file: rel, at: new Date().toISOString(), look };
         saveEpisode(ep);
         job.file = rel;
         job.progress = 1;
@@ -327,9 +328,8 @@ export function createServer(opts = {}) {
       const ep = getEp(m[1]);
       if (!LOOKS.includes(body.look)) throw new HttpError(400, T.badData);
       if (running(ep.id, "render")) throw new HttpError(409, T.busy);
-      if (body.look !== (ep.look ?? DEFAULT_LOOK)) {
+      if (body.look !== ep.look) {
         ep.look = body.look;
-        ep.lookAt = Date.now(); // a video made before this needs a new render
         saveEpisode(ep);
       }
       saveConfig({ lastLook: body.look });

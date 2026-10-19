@@ -252,8 +252,13 @@ test("episodeStatus: changing the look after the render asks for a new render", 
   const p = ep.story.pages[0];
   p.image = { state: "done", file: "img/p01.jpg" };
   p.voice = { state: "done", file: "voice/p01.wav", seconds: 1, forText: p.narration };
-  ep.video = { file: "out/EP01 x.mp4" };
+  ep.video = { file: "out/EP01 x.mp4" }; // made before looks existed: wood desk
   assert.equal(episodeStatus(ep), "วิดีโอเสร็จ");
-  ep.lookAt = Date.now() + 1000;
+  ep.look = "pink";
   assert.equal(episodeStatus(ep), "ต้องประกอบใหม่");
+  ep.look = "wood"; // changed back: the video matches again
+  assert.equal(episodeStatus(ep), "วิดีโอเสร็จ");
+  ep.video.look = "full";
+  ep.look = "full";
+  assert.equal(episodeStatus(ep), "วิดีโอเสร็จ");
 });

@@ -676,6 +676,7 @@ async function videoShell() {
   const lookSel = $("#look");
   lookSel.onchange = async () => {
     const was = ep.id;
+    lookSel.disabled = true; // one change at a time, so replies cannot arrive out of order
     try {
       const next = await api("PATCH", `/api/episodes/${encodeURIComponent(was)}/look`, { look: lookSel.value });
       if (ep?.id !== was) return;
@@ -684,6 +685,8 @@ async function videoShell() {
     } catch (e) {
       lookSel.value = ep.look;
       showError(e);
+    } finally {
+      lookSel.disabled = false;
     }
   };
   try {
