@@ -136,6 +136,7 @@ export function pickTake(ep, n, key, take) {
   const page = ep.story.pages[n - 1];
   const t = key === "image" || key === "voice" ? page?.[`${key}Takes`]?.[take - 1] : undefined;
   if (!t) throw new Error(`No take ${take} for page ${n}`);
+  if (page[key]?.state === "done" && page[key].file === t.file) return; // already in use: the video stays valid
   page[key] = { state: "done", ...t, pickedAt: Date.now() };
   // a voice take matches the text it was read from: bring that text back
   if (key === "voice" && typeof t.forText === "string") page.narration = t.forText;

@@ -246,6 +246,9 @@ test("pickTake: switch back to an older take; a voice take brings back the text 
   assert.equal(p.voice.file, "voice/p01.wav");
   assert.equal(p.narration, first);
   assert.deepEqual(staleVoices(edited), [2, 3]);
+  const before = p.voice.pickedAt;
+  pickTake(edited, 1, "voice", 1); // the take already in use: nothing changes, no new render needed
+  assert.equal(p.voice.pickedAt, before);
   assert.throws(() => pickTake(edited, 1, "voice", 3));
   assert.throws(() => pickTake(edited, 1, "voice", 0));
   assert.throws(() => pickTake(edited, 9, "image", 1));

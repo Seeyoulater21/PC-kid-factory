@@ -211,9 +211,34 @@ test("pick a take: switches the page's image, refused while that kind is running
   assert.equal(loadEpisode(id).story.pages[0].image.file, "img/p01.jpg");
   assert.equal((await api("POST", `/api/episodes/${id}/pages/1/pick`, { kind: "image", take: 3 })).status, 400);
   assert.equal((await api("POST", `/api/episodes/${id}/pages/1/pick`, { kind: "x", take: 1 })).status, 400);
+  for (const take of ["1", 1.5, null]) {
+    assert.equal((await api("POST", `/api/episodes/${id}/pages/1/pick`, { kind: "image", take })).status, 400);
+  }
   await api("POST", `/api/episodes/${id}/images`, { pages: [2] });
   assert.equal((await api("POST", `/api/episodes/${id}/pages/1/pick`, { kind: "image", take: 2 })).status, 409);
   await waitJob(api, id, "images");
+});
+
+test("pick a voice take: the page gets back that take's text; refused while rendering", async (t) => {
+  let finish;
+  const render = (ep) => new Promise((r) => { finish = () => r(path.join(process.env.KIDFACTORY_DATA, "episodes", ep.id, "out", "x.mp4")); });
+  const { api } = await start(t, { render });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  await api("POST", `/api/episodes/${id}/voices`, { pages: [1] });
+  await waitJob(api, id, "voices");
+  const first = (await api("GET", `/api/episodes/${id}`)).json.story.pages[0].narration;
+  await api("PATCH", `/api/episodes/${id}/pages/1`, { narration: "ปิ่นโตยิ้ม" });
+  await api("POST", `/api/episodes/${id}/voices`, { pages: [1] });
+  await waitJob(api, id, "voices");
+  const r = await api("POST", `/api/episodes/${id}/pages/1/pick`, { kind: "voice", take: 1 });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.story.pages[0].narration, first);
+  assert.equal(r.json.story.pages[0].voice.file, "voice/p01.wav");
+  assert.ok(!r.json.staleVoices.includes(1));
+  assert.equal((await api("POST", `/api/episodes/${id}/render`, {})).status, 200);
+  assert.equal((await api("POST", `/api/episodes/${id}/pages/1/pick`, { kind: "voice", take: 2 })).status, 409);
+  finish();
+  await waitJob(api, id, "render");
 });
 
 test("media route serves episode files with ranges and blocks ../ traversal", async (t) => {

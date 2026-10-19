@@ -608,8 +608,8 @@ function roomUpdate() {
 // every image and voice made for this page; click a number to use that one (a voice also plays)
 function drawTakes(p, imgBusy, voiceBusy) {
   const row = (kind, label, takes, busyNow) => {
-    if (takes.length < 2) return "";
     const cur = p[kind].state === "done" ? p[kind].file : null;
+    if (!takes.length || (takes.length === 1 && takes[0].file === cur)) return ""; // nothing else to pick
     return `<span>${label}${takes.map((t, i) => {
       const old = kind === "voice" && t.forText !== p.narration ? ` title="อ่านจากคำเล่าเดิม: ${esc(t.forText)}"` : "";
       return `<button class="take ${t.file === cur ? "on" : ""}" data-kind="${kind}" data-take="${i + 1}"${old} ${busyNow ? "disabled" : ""}>${i + 1}</button>`;
