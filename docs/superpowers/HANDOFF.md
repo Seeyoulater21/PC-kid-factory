@@ -1,7 +1,7 @@
 # Kid Factory v1 handoff
 
 ## Status
-v0.3.0 released 2026-10-19: takes per page (#6) and the v1 review fixes (#5). v0.2.0 (same day) added the
+v0.4.0 released 2026-10-19: video look picker (#7). v0.3.0 (same day): takes per page (#6) and the v1 review fixes (#5). v0.2.0 (same day) added the
 Windows installer and launcher (#1), the real outro (#3) and the in-app update button (#2).
 Installed on the owner's Mac (`/Applications/KidFactory`, open `start.command`) and Windows PC.
 Owner data lives outside the code (Mac `~/Documents/KidFactory`, Windows `%USERPROFILE%\KidFactory`).
@@ -18,6 +18,10 @@ No owner check per issue for this app: build, test, review, ship, close; the own
 - Windows installer + launcher (`windows/`, `scripts/make-win.sh`), in-app update from GitHub releases with rollback
 - Takes: every image/voice per page is kept (`imageTakes`/`voiceTakes`, files p03.jpg, p03-2.jpg…); the page panel
   switches the take in use (`POST /api/episodes/:id/pages/:n/pick`); old takes are never deleted (owner decision)
+- Video looks (`LOOKS` in `src/render/book.mjs`): wood desk (default), pastel pink/blue/cream/mint desk, or `full`
+  (picture fills the frame, no desk/shadow/stack/spine). `PATCH /api/episodes/:id/look` saves `ep.look` and
+  `lastLook` in config (new episodes start with it); the render stores the look in `ep.video.look`, and the
+  status asks for a new render when it differs from `ep.look`
 
 ## Owner decisions
 - Characters locked: girl, unnamed boy friend, black cat with a red scarf; style from `assets/characters/origin.jpg`
