@@ -177,6 +177,22 @@ test("which Codex runs, and a Thai 'not installed' error when there is none", as
   await assert.rejects(c.json("a", {}), (e) => e.code === "missing" && /ติดตั้ง ChatGPT/.test(e.thai));
 });
 
+test("Codex runs in the app's own Codex home, never the user's ~/.codex (its plugins, tools and MCP servers)", async () => {
+  const f = fakeProcess({ turn: () => {} });
+  let opts = null;
+  const b = new CodexBridge({ command: ["x"], env: { PATH: "/bin", CODEX_HOME: "/user/.codex" }, spawnFn: (c, a, o) => { opts = o; return f.spawnFn(c, a); } });
+  await b.account();
+  const home = path.join(process.env.KIDFACTORY_DATA, "codex", "home");
+  assert.equal(opts.env.CODEX_HOME, home);
+  assert.equal(opts.env.PATH, "/bin", "the rest of the environment is kept");
+  const config = fs.readFileSync(path.join(home, "config.toml"), "utf8");
+  for (const off of ["code_mode_host", "shell_tool", "unified_exec", "computer_use", "plugins", "apps"]) {
+    assert.match(config, new RegExp(`^${off} = false$`, "m"), off);
+  }
+  assert.doesNotMatch(config, /mcp_servers/);
+  b.stop();
+});
+
 test("prompt helpers", () => {
   assert.match(imageText("p", [], { edit: true }), /LAST attachment is the picture to edit/);
   const r = reviseText({ context: "c", lastPrompt: "lp", feedback: "แมวหายไป" });

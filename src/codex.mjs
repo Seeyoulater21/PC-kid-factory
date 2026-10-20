@@ -61,6 +61,22 @@ const ownExe = () => {
   return b ? path.join(ownDir(), b.exe) : null;
 };
 
+// The app's own Codex home (sign-in + config). The user's ~/.codex may hold plugins, MCP servers and tools
+// (code mode, shell, computer use): with them the model ran `exec` instead of drawing, and helpers piled up.
+export const codexHome = () => path.join(dataDir(), "codex", "home");
+const CODEX_CONFIG = `# Written by Kid Factory on every start: ChatGPT here only writes text and draws pictures.
+[features]
+code_mode_host = false
+shell_tool = false
+unified_exec = false
+computer_use = false
+plugins = false
+remote_plugin = false
+apps = false
+tool_suggest = false
+skill_mcp_dependency_install = false
+`;
+
 /** The command that starts the app server, or null when Codex still has to be installed. */
 export function codexCommand({ env = process.env, exists = fs.existsSync, onPath = codexOnPath } = {}) {
   if (env.KIDFACTORY_CODEX) return [env.KIDFACTORY_CODEX, "app-server"];
@@ -221,8 +237,11 @@ export class CodexBridge {
     const argv = this.command ?? codexCommand();
     if (!argv) throw new CodexError("missing", "Codex is not installed");
     const [cmd, ...args] = argv;
+    const home = codexHome();
+    fs.mkdirSync(home, { recursive: true });
+    fs.writeFileSync(path.join(home, "config.toml"), CODEX_CONFIG);
     // unread stderr would fill its pipe and freeze Codex
-    const proc = this.spawnFn(cmd, args, { cwd: this.cwd, env: this.env, stdio: ["pipe", "pipe", "ignore"], windowsHide: true });
+    const proc = this.spawnFn(cmd, args, { cwd: this.cwd, env: { ...this.env, CODEX_HOME: home }, stdio: ["pipe", "pipe", "ignore"], windowsHide: true });
     this.proc = proc;
     this.pending = new Map();
     this.listeners = new Set();
