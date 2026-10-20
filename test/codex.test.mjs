@@ -171,6 +171,10 @@ test("account and sign-in", async () => {
 test("which Codex runs, and a Thai 'not installed' error when there is none", async () => {
   assert.equal(codexCommand({ env: {}, exists: () => false, onPath: () => false }), null);
   assert.deepEqual(codexCommand({ env: { KIDFACTORY_CODEX: "/x/codex" } }), ["/x/codex", "app-server"]);
+  if (["win32-x64", "darwin-arm64"].includes(`${process.platform}-${process.arch}`)) {
+    assert.equal(codexCommand({ env: {}, exists: (p) => !p.includes("code-mode-host"), onPath: () => false }), null, "an install without the code mode host is incomplete");
+    assert.match(codexCommand({ env: {}, exists: () => true, onPath: () => false })[0], /codex-app-server/);
+  }
   if (process.platform !== "win32") assert.deepEqual(codexCommand({ env: {}, exists: () => false, onPath: () => true }), ["codex", "app-server"]);
   const c = new CodexBridge({ spawnFn: () => { throw new Error("must not spawn"); } });
   c.boot = async () => { throw new CodexError("missing", "x"); };
@@ -186,10 +190,11 @@ test("Codex runs in the app's own Codex home, never the user's ~/.codex (its plu
   assert.equal(opts.env.CODEX_HOME, home);
   assert.equal(opts.env.PATH, "/bin", "the rest of the environment is kept");
   const config = fs.readFileSync(path.join(home, "config.toml"), "utf8");
-  for (const off of ["code_mode_host", "shell_tool", "unified_exec", "computer_use", "plugins", "apps"]) {
+  for (const off of ["shell_tool", "unified_exec", "computer_use", "plugins", "apps"]) {
     assert.match(config, new RegExp(`^${off} = false$`, "m"), off);
   }
   assert.doesNotMatch(config, /mcp_servers/);
+  assert.doesNotMatch(config, /code_mode_host/, "pictures are drawn through exec, which runs in the code mode host");
   b.stop();
 });
 

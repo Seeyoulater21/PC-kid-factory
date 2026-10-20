@@ -19,11 +19,23 @@ export const CODEX_BUILDS = {
     file: "codex-app-server-x86_64-pc-windows-msvc.exe.tar.gz",
     sha256: "d4da4ba8024b0cf9caedcb428a34cf2904f6bb1b41137a5f04f551e6d0699f54",
     exe: "codex-app-server-x86_64-pc-windows-msvc.exe",
+    host: {
+      file: "codex-code-mode-host-x86_64-pc-windows-msvc.exe.tar.gz",
+      sha256: "87b71dd4d0a5e2eba4971f0949627bc60523efd044f03fb58a4f8dd30d0f28e3",
+      from: "codex-code-mode-host-x86_64-pc-windows-msvc.exe",
+      exe: "codex-code-mode-host.exe",
+    },
   },
   "darwin-arm64": {
     file: "codex-app-server-aarch64-apple-darwin.tar.gz",
     sha256: "8165de84cc8e436d46d5e52fe6b68de053ba729c543e6310a1bd41e881cf4c37",
     exe: "codex-app-server-aarch64-apple-darwin",
+    host: {
+      file: "codex-code-mode-host-aarch64-apple-darwin.tar.gz",
+      sha256: "2e28f49a4767a97586843c92692b96481be74d837199b49038f731cec88e9941",
+      from: "codex-code-mode-host-aarch64-apple-darwin",
+      exe: "codex-code-mode-host",
+    },
   },
 };
 
@@ -60,13 +72,18 @@ const ownExe = () => {
   const b = CODEX_BUILDS[platformKey()];
   return b ? path.join(ownDir(), b.exe) : null;
 };
+// Code mode host: the model draws pictures through its `exec` tool, which the app server runs in this helper
+// (looked up next to the app server). Installs from 1.0.1 and earlier lack it.
+const ownHost = () => {
+  const b = CODEX_BUILDS[platformKey()];
+  return b ? path.join(ownDir(), b.host.exe) : null;
+};
 
 // The app's own Codex home (sign-in + config). The user's ~/.codex may hold plugins, MCP servers and tools
 // (code mode, shell, computer use): with them the model ran `exec` instead of drawing, and helpers piled up.
 export const codexHome = () => path.join(dataDir(), "codex", "home");
 const CODEX_CONFIG = `# Written by Kid Factory on every start: ChatGPT here only writes text and draws pictures.
 [features]
-code_mode_host = false
 shell_tool = false
 unified_exec = false
 computer_use = false
@@ -81,7 +98,7 @@ skill_mcp_dependency_install = false
 export function codexCommand({ env = process.env, exists = fs.existsSync, onPath = codexOnPath } = {}) {
   if (env.KIDFACTORY_CODEX) return [env.KIDFACTORY_CODEX, "app-server"];
   const own = ownExe();
-  if (own && exists(own)) return [own];
+  if (own && exists(own) && exists(ownHost())) return [own];
   if (process.platform !== "win32" && onPath()) return ["codex", "app-server"];
   return null;
 }
@@ -98,20 +115,36 @@ function codexOnPath() {
   return onPathCache;
 }
 
-/** Downloads and unpacks the app's own Codex app server. onProgress(0..1). */
+/** Downloads and unpacks the app's own Codex app server and its code mode host. onProgress(0..1). */
 export async function installCodex({ fetch = globalThis.fetch, onProgress = () => {} } = {}) {
   const b = CODEX_BUILDS[platformKey()];
   if (!b) throw new CodexError("missing", `no Codex build for ${platformKey()}`);
   const dir = ownDir();
   fs.mkdirSync(dir, { recursive: true });
-  const archive = path.join(dir, b.file);
+  // an app server already installed (1.0.1 and earlier) is kept: only the host is fetched
+  const parts = [
+    ...(fs.existsSync(ownExe()) ? [] : [{ file: b.file, sha256: b.sha256, from: b.exe, out: ownExe(), share: 0.75 }]),
+    { file: b.host.file, sha256: b.host.sha256, from: b.host.from, out: ownHost(), share: 0.25 },
+  ];
+  const sum = parts.reduce((a, x) => a + x.share, 0);
+  let done = 0;
+  for (const part of parts) {
+    await fetchPart({ fetch, dir, part, onProgress: (p) => onProgress(Math.min(0.99, (done + p * part.share) / sum)) });
+    done += part.share;
+  }
+  onProgress(1);
+  return ownExe();
+}
+
+async function fetchPart({ fetch, dir, part, onProgress }) {
+  const archive = path.join(dir, part.file);
   const fail = (msg, thai) => Object.assign(new CodexError("failed", msg), { thai });
   // a download that stops moving for a minute is given up (weak Wi-Fi must not leave "installing" forever)
   const ctrl = new AbortController();
   let idle = setTimeout(() => ctrl.abort(), 60_000);
   const hash = crypto.createHash("sha256");
   try {
-    const res = await fetch(`${RELEASE}/${b.file}`, { signal: ctrl.signal });
+    const res = await fetch(`${RELEASE}/${part.file}`, { signal: ctrl.signal });
     if (!res.ok || !res.body) throw fail(`download HTTP ${res.status}`, "ดาวน์โหลด ChatGPT ไม่สำเร็จ ลองใหม่");
     const total = Number(res.headers.get("content-length")) || 0;
     let got = 0;
@@ -121,7 +154,7 @@ export async function installCodex({ fetch = globalThis.fetch, onProgress = () =
         idle = setTimeout(() => ctrl.abort(), 60_000);
         hash.update(chunk);
         got += chunk.length;
-        if (total) onProgress(Math.min(0.99, got / total));
+        if (total) onProgress(got / total);
         cb(null, chunk);
       },
     });
@@ -133,18 +166,18 @@ export async function installCodex({ fetch = globalThis.fetch, onProgress = () =
   } finally {
     clearTimeout(idle);
   }
-  if (hash.digest("hex") !== b.sha256) {
+  if (hash.digest("hex") !== part.sha256) {
     fs.rmSync(archive, { force: true });
     throw Object.assign(new CodexError("failed", "checksum mismatch"), { thai: "ไฟล์ ChatGPT ที่ดาวน์โหลดเสียหาย ลองใหม่" });
   }
   // tar ships with macOS and with Windows 10 and later (System32's bsdtar: another tar on PATH may misread C:\ paths)
   const tar = process.platform === "win32" ? path.join(process.env.SystemRoot || "C:\\Windows", "System32", "tar.exe") : "tar";
-  const r = spawnSync(tar, ["-xzf", b.file], { cwd: dir, stdio: "ignore", timeout: 120_000, windowsHide: true });
+  const r = spawnSync(tar, ["-xzf", part.file], { cwd: dir, stdio: "ignore", timeout: 120_000, windowsHide: true });
   fs.rmSync(archive, { force: true });
-  if (r.status !== 0 || !fs.existsSync(ownExe())) throw Object.assign(new CodexError("failed", "unpack failed"), { thai: "แตกไฟล์ ChatGPT ไม่สำเร็จ ลองใหม่" });
-  if (process.platform !== "win32") fs.chmodSync(ownExe(), 0o755);
-  onProgress(1);
-  return ownExe();
+  const unpacked = path.join(dir, part.from);
+  if (r.status !== 0 || !fs.existsSync(unpacked)) throw Object.assign(new CodexError("failed", "unpack failed"), { thai: "แตกไฟล์ ChatGPT ไม่สำเร็จ ลองใหม่" });
+  if (unpacked !== part.out) fs.renameSync(unpacked, part.out);
+  if (process.platform !== "win32") fs.chmodSync(part.out, 0o755);
 }
 
 // ---- prompts around a picture ----
