@@ -6,7 +6,9 @@ import path from "node:path";
 import http from "node:http";
 import { createServer } from "../src/server.mjs";
 import { GeminiError } from "../src/gemini.mjs";
-import { IDEAS_SCHEMA } from "../src/prompts.mjs";
+import { IDEAS_SCHEMA, PACKAGE_SCHEMA } from "../src/prompts.mjs";
+import { CodexError } from "../src/codex.mjs";
+import { jpeg } from "./helpers.mjs";
 import { writeWav } from "../src/audio.mjs";
 import { createEpisode, loadEpisode, saveEpisode } from "../src/episodes.mjs";
 import { listTracks } from "../src/music.mjs";
@@ -20,9 +22,10 @@ function fakeGemini({ slow = 0, fail } = {}) {
   return {
     async json(model, prompt, schema) {
       if (fail) throw fail;
+      if (schema === PACKAGE_SCHEMA) return structuredClone(sample.package);
       return schema === IDEAS_SCHEMA ? { ideas: sample.ideas } : structuredClone(sample.story);
     },
-    async image() { await wait(); return Buffer.from("jpg"); },
+    async image() { await wait(); return jpeg(); },
     async speech() { await wait(); return wav(); },
   };
 }
@@ -117,9 +120,12 @@ test("ideas: empty topic is a Thai 400; good topic returns 3 ideas", async (t) =
   assert.equal(ok.json.ideas.length, 3);
 });
 
-test("no key and no injected gemini: Thai error asking for the key", async (t) => {
-  const { api } = await start(t, { gemini: undefined });
-  const r = await api("POST", "/api/ideas", { topic: "กินผัก" });
+test("no key and no injected gemini: voices ask for the key in Thai (ChatGPT needs none)", async (t) => {
+  const { api } = await start(t, { gemini: undefined, codex: fakeCodex() });
+  const ideasR = await api("POST", "/api/ideas", { topic: "กินผัก" });
+  assert.equal(ideasR.status, 200);
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  const r = await api("POST", `/api/episodes/${id}/voices`, {});
   assert.equal(r.status, 400);
   assert.match(r.json.error, /คีย์/);
 });
@@ -387,7 +393,11 @@ test("narration edited while its voice records: the old audio stays stale", asyn
 
 test("job and page errors never carry the key", async (t) => {
   const g = fakeGemini();
-  g.image = async () => { throw new GeminiError("refused", "x", `ภาพไม่ได้ ${KEY}`); };
+  // sheets draw fine, the page picture is refused
+  g.image = async (prompt) => {
+    if (/reference sheet/.test(prompt)) return jpeg();
+    throw new GeminiError("refused", "x", `ภาพไม่ได้ ${KEY}`);
+  };
   const { api } = await start(t, { gemini: g });
   await api("POST", "/api/key", { key: KEY });
   const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
@@ -499,4 +509,207 @@ test("look cannot change while the video renders", async (t) => {
   await waitJob(api, id, "render");
   assert.equal(loadEpisode(id).look, undefined);
   assert.equal((await api("PATCH", `/api/episodes/${id}/look`, { look: "pink" })).status, 200);
+});
+
+// ---- ChatGPT, sheet library, packaging ----
+
+// A CodexBridge double: JSON from the sample, pictures as a temp JPEG file; `limit` makes pictures hit the plan limit.
+function fakeCodex({ limit = false, signedIn = true } = {}) {
+  const calls = { json: [], image: [], login: 0 };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kf-codex-"));
+  return {
+    calls,
+    async account() { return signedIn ? { signedIn: true, email: "a@b.c", plan: "plus" } : { signedIn: false }; },
+    async login() { calls.login++; return "https://auth.example/start"; },
+    async json(prompt, schema) {
+      calls.json.push({ prompt, schema });
+      if (schema === PACKAGE_SCHEMA) return structuredClone(sample.package);
+      return schema === IDEAS_SCHEMA ? { ideas: sample.ideas } : structuredClone(sample.story);
+    },
+    async image(req) {
+      calls.image.push(req);
+      if (limit) throw new CodexError("limit", "usage", { retryAt: "2026-10-20T06:39:00.000Z" });
+      const file = path.join(dir, `${calls.image.length}.jpg`);
+      fs.writeFileSync(file, jpeg());
+      return { file, prompt: req.feedback ? `revised: ${req.feedback}` : req.prompt };
+    },
+  };
+}
+const ready = async (api, id) => {
+  await api("POST", `/api/episodes/${id}/images`, {});
+  return waitJob(api, id, "images");
+};
+
+test("ChatGPT is the default: story and pictures go through Codex, new sheets join the library and are drawn once", async (t) => {
+  const codex = fakeCodex();
+  const { api } = await start(t, { gemini: fakeGemini(), codex, provider: undefined });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  assert.equal(codex.calls.json.length, 1);
+  let lib = (await api("GET", "/api/sheets")).json.sheets;
+  assert.deepEqual(lib.filter((s) => s.auto).map((s) => s.tag), ["teacher", "school-classroom", "school-washroom", "school-cafeteria"]);
+  const job = await ready(api, id);
+  assert.equal(job.error, undefined);
+  const pages = sample.story.pages.length;
+  // pinto, friend + 4 new sheets, then every page
+  assert.equal(codex.calls.image.length, 6 + pages);
+  lib = (await api("GET", "/api/sheets")).json.sheets;
+  assert.ok(lib.find((s) => s.tag === "teacher").chosen);
+  assert.deepEqual(lib.find((s) => s.tag === "teacher").usedBy, [1]);
+  assert.equal(lib.find((s) => s.tag === "mom").chosen, null, "sheets the episode does not use are not drawn");
+  // a second school episode reuses every sheet
+  const two = (await api("POST", "/api/episodes", { idea: sample.idea, keep: [] })).json.id;
+  assert.equal((await api("GET", "/api/sheets")).json.sheets.length, lib.length);
+  await ready(api, two);
+  assert.equal(codex.calls.image.length, 6 + 2 * pages);
+});
+
+test("a ChatGPT limit: Thai message with the time, limit flag, and Gemini can take the same job", async (t) => {
+  const codex = fakeCodex({ limit: true });
+  const { api } = await start(t, { gemini: fakeGemini(), codex, provider: undefined });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  const job = await ready(api, id);
+  assert.equal(job.limit, true);
+  assert.match(job.error, /ChatGPT ใช้ครบโควตา.*\d\d:\d\d น\..*ใช้ Gemini แทน/);
+  await api("POST", `/api/episodes/${id}/images`, { provider: "gemini" });
+  const again = await waitJob(api, id, "images");
+  assert.equal(again.error, undefined);
+  assert.ok((await api("GET", `/api/episodes/${id}`)).json.story.pages.every((p) => p.image.state === "done"));
+});
+
+test("retake with feedback reaches the picture call; empty feedback is a fresh take", async (t) => {
+  const codex = fakeCodex();
+  const { api } = await start(t, { gemini: fakeGemini(), codex, provider: undefined });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  await ready(api, id);
+  const n = codex.calls.image.length;
+  await api("POST", `/api/episodes/${id}/images`, { pages: [3], feedback: "  มือพัง " });
+  await waitJob(api, id, "images");
+  assert.equal(codex.calls.image[n].feedback, "มือพัง");
+  assert.ok(codex.calls.image[n].editTarget.endsWith(path.join("img", "p03.jpg")));
+  const p = (await api("GET", `/api/episodes/${id}`)).json.story.pages[2];
+  assert.equal(p.image.feedback, "มือพัง");
+  assert.equal(p.imageTakes.length, 2);
+  await api("POST", `/api/episodes/${id}/images`, { pages: [3], feedback: "" });
+  await waitJob(api, id, "images");
+  assert.equal(codex.calls.image[n + 1].feedback, null);
+});
+
+test("ChatGPT status, install and sign-in", async (t) => {
+  const codex = fakeCodex({ signedIn: false });
+  const opened = [];
+  let progress;
+  const { api } = await start(t, {
+    codex, openUrl: (u) => opened.push(u),
+    installCodex: (onProgress) => new Promise((r) => { onProgress(0.5); progress = r; }),
+  });
+  assert.deepEqual((await api("GET", "/api/chatgpt")).json, { installed: true, signedIn: false });
+  const r = await api("POST", "/api/chatgpt/login", {});
+  assert.equal(r.json.url, "https://auth.example/start");
+  assert.deepEqual(opened, ["https://auth.example/start"]);
+  assert.equal((await api("POST", "/api/chatgpt/install", {})).status, 200);
+  const s = (await api("GET", "/api/chatgpt")).json;
+  assert.equal(s.installed, false);
+  assert.equal(s.install.progress, 0.5);
+  assert.equal((await api("POST", "/api/chatgpt/install", {})).status, 409);
+  progress();
+});
+
+test("sheet library: add by hand, draw, retake with feedback, pick, lock; served as images", async (t) => {
+  const codex = fakeCodex();
+  const { api, base } = await start(t, { gemini: fakeGemini(), codex, provider: undefined });
+  const bad = await api("POST", "/api/sheets", { kind: "character", name: "", description: "" });
+  assert.equal(bad.status, 400);
+  const { json: { tag } } = await api("POST", "/api/sheets", { kind: "character", name: "คุณหมอ", description: "a kind doctor in a white coat", tag: "doctor" });
+  assert.equal(tag, "doctor");
+  const waitSheets = async () => {
+    for (let i = 0; i < 400; i++) {
+      const j = (await api("GET", "/api/sheets")).json;
+      if (!j.job.running) return j;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    throw new Error("sheet job never finished");
+  };
+  await api("POST", "/api/sheets/doctor/make", {});
+  let lib = await waitSheets();
+  let doc = lib.sheets.find((s) => s.tag === "doctor");
+  assert.equal(doc.chosen, "doctor-1.jpg");
+  assert.equal((await fetch(`${base}/sheets/doctor-1.jpg`)).headers.get("content-type"), "image/jpeg");
+  assert.equal((await fetch(`${base}/sheets/..%2Fsheets.json`)).status, 404);
+  await api("POST", "/api/sheets/doctor/make", { feedback: "ใส่หูฟังแพทย์" });
+  lib = await waitSheets();
+  doc = lib.sheets.find((s) => s.tag === "doctor");
+  assert.equal(doc.takes.length, 2);
+  assert.equal(codex.calls.image.at(-1).feedback, "ใส่หูฟังแพทย์");
+  assert.equal((await api("POST", "/api/sheets/doctor/pick", { take: 1 })).status, 200);
+  assert.equal((await api("POST", "/api/sheets/doctor/lock", { locked: true })).status, 200);
+  assert.equal((await api("POST", "/api/sheets/doctor/make", {})).status, 409);
+  assert.equal((await api("POST", "/api/sheets/doctor/pick", { take: 2 })).status, 409);
+  doc = (await api("GET", "/api/sheets")).json.sheets.find((s) => s.tag === "doctor");
+  assert.equal(doc.chosen, "doctor-1.jpg");
+  assert.equal(doc.locked, true);
+  // draw everything still missing (the 8 starting sheets)
+  await api("POST", "/api/sheets/make-missing", {});
+  lib = await waitSheets();
+  assert.ok(lib.sheets.every((s) => s.chosen));
+  assert.equal((await api("POST", "/api/sheets/nope/make", {})).status, 404);
+});
+
+test("packaging: text + cover JPG under 2 MB next to the video; edit, remake parts, cover retake and pick", async (t) => {
+  const codex = fakeCodex();
+  const { api, root } = await start(t, { gemini: fakeGemini(), codex, provider: undefined });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  await ready(api, id);
+  await api("POST", `/api/episodes/${id}/package`, { part: "all" });
+  let job = await waitJob(api, id, "package");
+  assert.equal(job.error, undefined);
+  let ep = (await api("GET", `/api/episodes/${id}`)).json;
+  assert.equal(ep.package.title, sample.package.title);
+  assert.deepEqual(ep.package.hashtags, sample.package.hashtags);
+  assert.match(ep.package.cover, /^out\/EP01 .* - cover\.jpg$/);
+  const coverFile = path.join(root, "episodes", id, ep.package.cover);
+  assert.ok(fs.statSync(coverFile).size < 2 * 1024 * 1024);
+  assert.ok(codex.calls.image.at(-1).refs.some((r) => /\(pinto\)/.test(r.label)), "cover uses the cast sheets");
+  assert.match(codex.calls.image.at(-1).prompt, /no text|No text/);
+  const before = fs.statSync(coverFile).mtimeMs;
+  // hand edit: the new title is written on the cover again
+  await new Promise((r) => setTimeout(r, 20));
+  ep = (await api("PATCH", `/api/episodes/${id}/package`, { title: "ปิ่นโตชอบผัก", hashtags: "นิทาน #เด็ก นิทาน" })).json;
+  assert.equal(ep.package.title, "ปิ่นโตชอบผัก");
+  assert.deepEqual(ep.package.hashtags, ["#นิทาน", "#เด็ก"]);
+  assert.ok(fs.statSync(coverFile).mtimeMs > before);
+  assert.equal(loadEpisode(id).package.title, "ปิ่นโตชอบผัก");
+  assert.equal((await api("PATCH", `/api/episodes/${id}/package`, { title: " " })).status, 400);
+  // remake one part only
+  await api("POST", `/api/episodes/${id}/package`, { part: "description" });
+  await waitJob(api, id, "package");
+  ep = (await api("GET", `/api/episodes/${id}`)).json;
+  assert.equal(ep.package.title, "ปิ่นโตชอบผัก");
+  assert.equal(ep.package.description, sample.package.description);
+  // cover retake with "what to fix", then pick the first cover again
+  await api("POST", `/api/episodes/${id}/package`, { part: "cover", feedback: "แมวหายไป" });
+  job = await waitJob(api, id, "package");
+  assert.equal(codex.calls.image.at(-1).feedback, "แมวหายไป");
+  ep = (await api("GET", `/api/episodes/${id}`)).json;
+  assert.equal(ep.package.coverTakes.length, 2);
+  assert.equal(ep.package.coverArt, "img/cover-2.jpg");
+  ep = (await api("POST", `/api/episodes/${id}/package/pick`, { take: 1 })).json;
+  assert.equal(ep.package.coverArt, "img/cover-1.jpg");
+  assert.equal((await api("POST", `/api/episodes/${id}/package/pick`, { take: 9 })).status, 400);
+});
+
+test("fake mode needs no ChatGPT: status is signed in and a whole episode can be drawn", async (t) => {
+  process.env.KIDFACTORY_FAKE = "1";
+  t.after(() => { delete process.env.KIDFACTORY_FAKE; });
+  const { api } = await start(t, { gemini: undefined });
+  assert.equal((await api("GET", "/api/chatgpt")).json.signedIn, true);
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  await api("POST", `/api/episodes/${id}/images`, { pages: [1, 2] });
+  for (let i = 0; i < 600; i++) {
+    const { json } = await api("GET", `/api/episodes/${id}/job`);
+    if (json.images && !json.images.running) break;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  const ep = (await api("GET", `/api/episodes/${id}`)).json;
+  assert.equal(ep.story.pages[0].image.state, "done");
+  assert.equal(ep.story.pages[1].image.state, "done");
 });

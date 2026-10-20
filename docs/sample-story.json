@@ -22,10 +22,37 @@
   "story": {
     "title": "ถาดข้าวกลางวันของปิ่นโต",
     "mood": "bright",
-    "sideCharacters": [
+    "timeOfDay": "late morning to noon, bright soft daylight through big windows",
+    "props": [
       {
-        "id": "teacher",
-        "look": "A kind Thai female teacher in her 30s with hair tied in a neat low ponytail, wearing a light blue polo shirt and dark navy trousers."
+        "id": "lunch-tray",
+        "look": "a stainless steel school lunch tray with five compartments: rice, stir-fried morning glory, carrot and pumpkin soup, a small banana"
+      }
+    ],
+    "newSheets": [
+      {
+        "tag": "teacher",
+        "kind": "character",
+        "name": "คุณครู",
+        "description": "A kind Thai female teacher in her 30s with hair tied in a neat low ponytail, wearing a light blue polo shirt and dark navy trousers."
+      },
+      {
+        "tag": "school-classroom",
+        "kind": "place",
+        "name": "ห้องเรียน",
+        "description": "a bright kindergarten classroom: low light-wood craft tables, small wooden chairs, pastel yellow walls, big open windows with green trees outside, a cork board with children's drawings, a low shelf with crayon boxes."
+      },
+      {
+        "tag": "school-washroom",
+        "kind": "place",
+        "name": "ที่ล้างมือของโรงเรียน",
+        "description": "the school hand-washing area: a long low tiled sink in light blue with four taps, small mirrors, soap dispensers, a towel rack, white walls."
+      },
+      {
+        "tag": "school-cafeteria",
+        "kind": "place",
+        "name": "โรงอาหารโรงเรียน",
+        "description": "the school cafeteria: long light-wood tables with benches, a serving counter, cream walls, big windows, a tray return shelf, a drinking water station."
       }
     ],
     "pages": [
@@ -35,7 +62,9 @@
         "cast": [
           "pinto",
           "friend"
-        ]
+        ],
+        "location": "school-classroom",
+        "props": []
       },
       {
         "narration": "เสียงกริ่งพักกลางวันดังขึ้นอย่างสดใส คุณครูส่งยิ้มหวานแล้วบอกให้เด็กๆ เก็บสี ปิ่นโตกับเพื่อนวางกล่องสีลงบนโต๊ะอย่างเรียบร้อย ท้องของเด็กทั้งสองเริ่มส่งเสียงเบาๆ แล้ว",
@@ -44,7 +73,9 @@
           "pinto",
           "friend",
           "teacher"
-        ]
+        ],
+        "location": "school-classroom",
+        "props": []
       },
       {
         "narration": "ก่อนจะไปกินข้าว ทุกคนต้องล้างมือก่อน ปิ่นโตและเพื่อนยืนเปิดก๊อกน้ำ ถูฟองสบู่ให้ทั่วมือทั้งสองข้างจนสะอาด แล้วล้างน้ำเปล่าจนเกลี้ยง ตอนนี้มือหอมสะอาดพร้อมกินข้าวแล้วค่ะ",
@@ -52,7 +83,9 @@
         "cast": [
           "pinto",
           "friend"
-        ]
+        ],
+        "location": "school-washroom",
+        "props": []
       },
       {
         "narration": "เด็กๆ เดินเรียงแถวเข้ามาในโรงอาหารอย่างเป็นระเบียบ คุณครูตักอาหารใส่ถาดหลุมสแตนเลสส่งให้ปิ่นโต กลิ่นหอมกรุ่นของข้าวสวยและซุปร้อนๆ ลอยขึ้นมาเตะจมูก",
@@ -61,7 +94,9 @@
           "pinto",
           "friend",
           "teacher"
-        ]
+        ],
+        "location": "school-cafeteria",
+        "props": []
       },
       {
         "narration": "ปิ่นโตใช้สองมือประคองถาดอาหารเดินมานั่งที่โต๊ะ เพื่อนของปิ่นโตเดินถือถาดตามมานั่งข้างๆ กัน ทั้งสองคนวางถาดลงบนโต๊ะไม้อย่างระมัดระวัง ไม่ทำให้อาหารหกเลอะเทอะเลย",
@@ -69,6 +104,10 @@
         "cast": [
           "pinto",
           "friend"
+        ],
+        "location": "school-cafeteria",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -76,6 +115,10 @@
         "scene": "In the cafeteria dining area, looking directly down at Pinto's stainless steel tray on the wooden table, showing compartments of fluffy jasmine rice, clear soup with soft tofu, sliced orange carrots, and pale green Chinese cabbage.",
         "cast": [
           "pinto"
+        ],
+        "location": "",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -84,6 +127,10 @@
         "cast": [
           "pinto",
           "friend"
+        ],
+        "location": "school-cafeteria",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -92,6 +139,10 @@
         "cast": [
           "pinto",
           "friend"
+        ],
+        "location": "school-cafeteria",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -99,6 +150,10 @@
         "scene": "In the cafeteria dining area, close-up view of Pinto sitting at the table, cheeks slightly puffed as she chews happily with eyes curved in a bright smile, savoring the sweet carrot.",
         "cast": [
           "pinto"
+        ],
+        "location": "",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -107,6 +162,10 @@
         "cast": [
           "pinto",
           "friend"
+        ],
+        "location": "school-cafeteria",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -115,6 +174,10 @@
         "cast": [
           "pinto",
           "friend"
+        ],
+        "location": "school-cafeteria",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -123,6 +186,10 @@
         "cast": [
           "pinto",
           "friend"
+        ],
+        "location": "school-cafeteria",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -131,6 +198,10 @@
         "cast": [
           "pinto",
           "friend"
+        ],
+        "location": "school-cafeteria",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -139,6 +210,10 @@
         "cast": [
           "pinto",
           "friend"
+        ],
+        "location": "school-cafeteria",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -147,6 +222,10 @@
         "cast": [
           "pinto",
           "friend"
+        ],
+        "location": "school-cafeteria",
+        "props": [
+          "lunch-tray"
         ]
       },
       {
@@ -156,7 +235,9 @@
           "pinto",
           "friend",
           "teacher"
-        ]
+        ],
+        "location": "school-cafeteria",
+        "props": []
       },
       {
         "narration": "ทั้งสองคนดื่มน้ำเปล่าสะอาดแล้วใช้ผ้าเช็ดปากจนแห้ง การกินผักทุกวันทำให้ร่างกายแข็งแรงและเติบโตอย่างสดใส วันนี้หนูๆ กินผักในมื้ออาหารหมดเกลี้ยงเหมือนปิ่นโตไหมคะ",
@@ -164,8 +245,22 @@
         "cast": [
           "pinto",
           "friend"
-        ]
+        ],
+        "location": "school-cafeteria",
+        "props": []
       }
     ]
+  },
+  "package": {
+    "title": "ปิ่นโตกินผักหมดถาด",
+    "description": "ปิ่นโตกับเพื่อนกินข้าวกลางวันที่โรงเรียน แล้วช่วยกันกินผักในถาดจนหมด เรียนรู้ว่าผักทำให้ร่างกายแข็งแรง กินผักทุกวันนะคะ",
+    "hashtags": [
+      "#นิทานเด็ก",
+      "#ปิ่นโตเก่งขึ้นทุกวัน",
+      "#กินผัก",
+      "#การ์ตูนสอนเด็ก",
+      "#นิทานก่อนนอน"
+    ],
+    "coverScene": "Pinto and the friend smile at a lunch tray full of colourful vegetables, close to the camera, in a bright school cafeteria."
   }
 }

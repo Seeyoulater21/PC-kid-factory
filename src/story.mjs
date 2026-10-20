@@ -1,8 +1,9 @@
 // Story engine: topic -> 3 ideas -> a validated picture-book story.
 import { GeminiError, MODELS } from "./gemini.mjs";
 import {
-  loadCast, ideasPrompt, storyPrompt, retryNote, IDEAS_SCHEMA, STORY_SCHEMA, FORBIDDEN_LOOKS,
+  ideasPrompt, storyPrompt, retryNote, IDEAS_SCHEMA, STORY_SCHEMA, FORBIDDEN_LOOKS,
 } from "./prompts.mjs";
+import { TAG_RE, KINDS } from "./sheets.mjs";
 
 export { imagePrompt } from "./prompts.mjs";
 
@@ -45,26 +46,36 @@ const forbiddenIn = (text) => {
   return FORBIDDEN_LOOKS.filter((w) => new RegExp(`\\b${w}s?\\b`).test(low));
 };
 
-/** Problems with a story, in English (fed back to the model on retry). Empty = ok. */
-export function validateStory(s, { minutes = 5 } = {}) {
+/**
+ * Problems with a story, in English (fed back to the model on retry). Empty = ok.
+ * library: the sheet list; page cast and location tags must be in it or in the story's newSheets.
+ */
+export function validateStory(s, { minutes = 5, library = [] } = {}) {
   if (!s || typeof s !== "object") return ["story is not an object"];
   const problems = [];
-  const mainIds = loadCast().characters.map((c) => c.id);
 
   if (!str(s.title)) problems.push("title is missing");
   if (!MOODS.includes(s.mood)) problems.push(`mood must be one of ${MOODS.join(", ")}`);
+  if (!str(s.timeOfDay)) problems.push("timeOfDay is missing");
 
-  const side = Array.isArray(s.sideCharacters) ? s.sideCharacters : [];
-  if (!Array.isArray(s.sideCharacters)) problems.push("sideCharacters must be a list");
-  const sideIds = [];
-  for (const c of side) {
-    const id = str(c?.id);
-    if (!id || !str(c?.look)) { problems.push("every side character needs an id and a look"); continue; }
-    if (mainIds.includes(id)) problems.push(`side character id "${id}" is a main character id; pick another id`);
-    if (sideIds.includes(id)) problems.push(`side character id "${id}" is used twice`);
-    for (const w of forbiddenIn(c.look)) problems.push(`side character "${id}" must not be a ${w}`);
-    if (/\b(cats?|kittens?|kitty|tabby)\b/i.test(c.look)) problems.push(`side character "${id}" must not be a cat; the only cat is Pinto's black cat`);
-    sideIds.push(id);
+  const tags = { character: new Set(), place: new Set() };
+  for (const x of library) tags[x.kind]?.add(x.tag);
+  const fresh = Array.isArray(s.newSheets) ? s.newSheets : [];
+  if (!Array.isArray(s.newSheets)) problems.push("newSheets must be a list");
+  for (const n of fresh) {
+    const tag = str(n?.tag);
+    if (!TAG_RE.test(tag)) { problems.push(`new sheet tag "${tag}" must be a short lowercase English word with dashes`); continue; }
+    if (!KINDS.includes(n.kind)) problems.push(`new sheet "${tag}" kind must be character or place`);
+    if (!str(n.name) || !str(n.description)) problems.push(`new sheet "${tag}" needs a name and a description`);
+    if (tags.character.has(tag) || tags.place.has(tag)) problems.push(`new sheet tag "${tag}" is used twice`);
+    for (const w of forbiddenIn(n.description)) problems.push(`new sheet "${tag}" must not be a ${w}`);
+    if (n.kind === "character" && /\b(cats?|kittens?|kitty|tabby)\b/i.test(n.description)) problems.push(`new sheet "${tag}" must not be a cat; the only cat is Pinto's black cat`);
+    tags[n.kind]?.add(tag);
+  }
+  const propIds = new Set();
+  for (const p of Array.isArray(s.props) ? s.props : []) {
+    if (!str(p?.id) || !str(p?.look)) problems.push("every prop needs an id and a look");
+    else propIds.add(p.id);
   }
 
   const pages = Array.isArray(s.pages) ? s.pages : [];
@@ -73,7 +84,6 @@ export function validateStory(s, { minutes = 5 } = {}) {
     problems.push(`story has ${pages.length} pages; it must have between ${min} and ${max} pages`);
   }
 
-  const known = new Set([...mainIds, ...sideIds]);
   let pintoSeen = false;
   pages.forEach((p, i) => {
     const at = `page ${i + 1}`;
@@ -88,8 +98,10 @@ export function validateStory(s, { minutes = 5 } = {}) {
     const cast = Array.isArray(p.cast) ? p.cast : [];
     if (!cast.length) problems.push(`${at}: cast is empty`);
     for (const id of cast) {
-      if (!known.has(id)) problems.push(`${at}: cast id "${id}" is not a main character or a declared side character`);
+      if (!tags.character.has(id)) problems.push(`${at}: cast tag "${id}" is not a library character or a newSheets character`);
     }
+    if (p.location && !tags.place.has(p.location)) problems.push(`${at}: location "${p.location}" is not a library place or a newSheets place`);
+    for (const id of p.props ?? []) if (!propIds.has(id)) problems.push(`${at}: prop "${id}" is not in props`);
     if (cast.includes("pinto")) pintoSeen = true;
   });
   if (pages.length && !pintoSeen) problems.push("pinto must appear in the story");
@@ -100,35 +112,42 @@ export function validateStory(s, { minutes = 5 } = {}) {
 export const stripEmphasis = (s) =>
   s.replace(/(\*\*|\*|_)(?=\S)(.*?\S)\1/g, "$2").replace(/[*_]/g, "");
 
-function normalize(raw) {
+const tag = (v) => str(v).toLowerCase().replace(/[\s_]+/g, "-");
+const list = (v, f) => (Array.isArray(v) ? v.map(f) : v);
+
+// Trims and lowercases what the model wrote; a new sheet whose tag the library already has is dropped (that sheet is reused).
+function normalize(raw, library) {
   if (!raw || typeof raw !== "object") return raw;
+  const known = new Set(library.map((x) => x.tag));
   return {
     title: str(raw.title),
     mood: str(raw.mood),
-    sideCharacters: Array.isArray(raw.sideCharacters)
-      ? raw.sideCharacters.map((c) => ({ id: str(c?.id).toLowerCase(), look: str(c?.look) }))
-      : raw.sideCharacters,
-    pages: Array.isArray(raw.pages)
-      ? raw.pages.map((p) =>
-          p && typeof p === "object"
-            ? {
-                narration: stripEmphasis(str(p.narration)),
-                scene: str(p.scene),
-                cast: Array.isArray(p.cast) ? p.cast.map((id) => str(id).toLowerCase()).filter(Boolean) : [],
-              }
-            : p,
-        )
-      : raw.pages,
+    timeOfDay: str(raw.timeOfDay),
+    props: list(raw.props, (p) => ({ id: tag(p?.id), look: str(p?.look) })),
+    newSheets: Array.isArray(raw.newSheets)
+      ? raw.newSheets.map((n) => ({ tag: tag(n?.tag), kind: str(n?.kind), name: str(n?.name), description: str(n?.description) }))
+          .filter((n) => !known.has(n.tag))
+      : raw.newSheets,
+    pages: list(raw.pages, (p) =>
+      p && typeof p === "object"
+        ? {
+            narration: stripEmphasis(str(p.narration)),
+            scene: str(p.scene),
+            cast: Array.isArray(p.cast) ? p.cast.map(tag).filter(Boolean) : [],
+            location: tag(p.location),
+            props: Array.isArray(p.props) ? p.props.map(tag).filter(Boolean) : [],
+          }
+        : p),
   };
 }
 
-export async function writeStory(gemini, idea, { minutes = 5 } = {}) {
-  const base = storyPrompt(idea, pageBudget(minutes), loadCast(), minutes);
+export async function writeStory(gemini, idea, { minutes = 5, library = [] } = {}) {
+  const base = storyPrompt(idea, pageBudget(minutes), library, minutes);
   let prompt = base;
   let problems = [];
   for (let attempt = 0; attempt < 2; attempt++) {
-    const story = normalize(await gemini.json(MODELS.story, prompt, STORY_SCHEMA));
-    problems = validateStory(story, { minutes });
+    const story = normalize(await gemini.json(MODELS.story, prompt, STORY_SCHEMA), library);
+    problems = validateStory(story, { minutes, library });
     if (!problems.length) return story;
     prompt = base + retryNote(problems);
   }

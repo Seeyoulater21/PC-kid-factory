@@ -1,27 +1,4 @@
 {
-  "characters": [
-    {
-      "id": "pinto",
-      "name": "น้องปิ่นโต",
-      "look": "Thai girl about 6, short black bob with straight bangs, round face, small friendly black eyes, pink dash blush.",
-      "outfit": "yellow short-sleeve shirt with small pink hearts, pink shorts, white socks, red sneakers.",
-      "sheet": "assets/characters/pinto.jpg"
-    },
-    {
-      "id": "friend",
-      "name": "เพื่อน",
-      "look": "Thai boy about 6, short messy black hair, round face, small black eyes, pink dash blush.",
-      "outfit": "light blue T-shirt with a white star, dark green shorts, white socks, yellow sneakers.",
-      "sheet": "assets/characters/friend.jpg"
-    },
-    {
-      "id": "cat",
-      "name": "แมวดำ",
-      "look": "small round black house cat, big cream-colored round eyes, small pink nose, pink blush, red scarf tied at the neck.",
-      "outfit": "",
-      "sheet": "assets/characters/cat.jpg"
-    }
-  ],
   "voice": "en-us-sola",
   "voiceStyle": "A warm, cheerful young Thai woman reading a picture book aloud to children aged 4 to 10. Natural native Thai pronunciation and tones, smiling voice, calm and gentle, clear and a little slow, brief natural pauses between sentences."
 }
