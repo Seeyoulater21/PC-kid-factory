@@ -295,6 +295,25 @@ function recorder(fail = () => {}) {
   };
 }
 
+test("ChatGPT draws five pages at a time by default", async () => {
+  const ep = setup();
+  ep.story.pages = Array.from({ length: 12 }, (_, i) => ({ ...ep.story.pages[0], narration: `n${i}`, image: { state: "todo" } }));
+  let active = 0, max = 0;
+  const ai = {
+    provider: "chatgpt",
+    async image() {
+      active++;
+      max = Math.max(max, active);
+      await new Promise((r) => setTimeout(r, 10));
+      active--;
+      return { bytes: jpeg(), prompt: "p" };
+    },
+  };
+  await makeImages(ep, ai);
+  assert.equal(max, 5);
+  assert.ok(ep.story.pages.every((p) => p.image.state === "done"));
+});
+
 test("retake with feedback edits the picture in use and keeps the old take", async () => {
   const ep = ep3(setup());
   const ai = recorder();
@@ -320,7 +339,7 @@ test("retake with feedback edits the picture in use and keeps the old take", asy
 test("a ChatGPT limit stops the job: finished pages stay, the rest wait as before", async () => {
   const ep = ep3(setup());
   const ai = recorder((req, n) => { if (n === 2) throw new CodexError("limit", "usage", { retryAt: null }); });
-  await assert.rejects(makeImages(ep, ai, {}), (e) => e.code === "limit");
+  await assert.rejects(makeImages(ep, ai, { concurrency: 1 }), (e) => e.code === "limit");
   const [a, b, c] = ep.story.pages;
   assert.equal(a.image.state, "done");
   assert.equal(b.image.state, "todo");

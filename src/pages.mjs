@@ -1,4 +1,4 @@
-// Page images and voices, saved after every page. Pictures: one at a time with ChatGPT, a few at a time with Gemini.
+// Page images and voices, saved after every page. Pictures: five at a time with ChatGPT, three with Gemini.
 import fs from "node:fs";
 import path from "node:path";
 import { dataDir } from "./data.mjs";
@@ -144,7 +144,7 @@ export async function makeImages(ep, ai, { pages, feedback = null, concurrency, 
   // the picture in use before this job (step() marks the page "working" before the call)
   const inUse = new Map(nums.map((n) => [n, ep.story.pages[n - 1].image?.state === "done" ? ep.story.pages[n - 1].image.file : null]));
   let stop = null;
-  await runPages(ep, nums, concurrency ?? (ai.provider === "chatgpt" ? 1 : 3), (n) =>
+  await runPages(ep, nums, concurrency ?? (ai.provider === "chatgpt" ? 5 : 3), (n) =>
     step(
       ep, n, "image", onChange,
       (page) => {

@@ -148,6 +148,31 @@ test("turns run one at a time; an approval request is declined; a crash rejects 
   b.stop();
 });
 
+test("pictures run side by side (text jobs still one at a time); a picture timing out leaves the others running", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kf-par-"));
+  const saved = path.join(dir, "out.png");
+  fs.writeFileSync(saved, jpeg());
+  let active = 0, max = 0;
+  const f = fakeProcess({
+    turn: (p, emit) => {
+      if (p.input[0].text.includes("NEVER")) return; // this one hangs
+      active++;
+      max = Math.max(max, active);
+      setTimeout(() => { active--; emit("item/completed", { item: { type: "imageGeneration", savedPath: saved } }); done(emit); }, 60);
+    },
+  });
+  const b = new CodexBridge({ command: ["x"], spawnFn: f.spawnFn, timeoutMs: 100 });
+  const hang = b.image({ prompt: "NEVER" });
+  const all = Promise.all([1, 2, 3, 4, 5].map((i) => b.image({ prompt: `p${i}` })));
+  await new Promise((r) => setTimeout(r, 70));
+  const late = b.image({ prompt: "late" }); // still drawing when the hung one times out
+  await assert.rejects(hang, (e) => e.code === "slow");
+  assert.equal((await all).length, 5);
+  assert.equal(max, 5, "five pictures at once");
+  assert.ok((await late).file, "the late picture was not killed by the timeout");
+  b.stop();
+});
+
 test("a turn that never ends times out and restarts Codex next time", async () => {
   const f = fakeProcess({ turn: () => {} });
   const b = new CodexBridge({ command: ["x"], spawnFn: f.spawnFn, timeoutMs: 30 });

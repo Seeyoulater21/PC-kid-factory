@@ -253,7 +253,8 @@ export class CodexBridge {
     this.ready = false; // initialize + model/list done
     this.starting = null;
     this.model = null;
-    this.chain = Promise.resolve(); // one turn at a time: ChatGPT limits work best in a single line
+    this.chain = Promise.resolve(); // text jobs one at a time; pictures run side by side (#18)
+    this.turns = 0; // turns in flight
   }
 
   start() {
@@ -361,15 +362,17 @@ export class CodexBridge {
     }
   }
 
-  /** Runs one turn in a fresh thread, after any turn already running. */
-  run(input, turnParams = {}) {
-    const job = this.chain.then(async () => {
+  /** Runs one turn in a fresh thread; queued after other queued turns, or right away with queue: false. */
+  run(input, turnParams = {}, { queue = true } = {}) {
+    const go = async () => {
       await this.start();
       const th = await this.request("thread/start", {
         cwd: this.cwd, sandbox: "read-only", approvalPolicy: "never", model: this.model, ephemeral: true,
       });
       return this.turn(th.thread.id, input, turnParams);
-    });
+    };
+    if (!queue) return go();
+    const job = this.chain.then(go);
     this.chain = job.catch(() => {});
     return job;
   }
@@ -396,7 +399,7 @@ export class CodexBridge {
       : imageText(prompt, refs, { edit: Boolean(editTarget) });
     const input = [{ type: "text", text }, ...refs.map((r) => ({ type: "localImage", path: r.path }))];
     if (editTarget) input.push({ type: "localImage", path: editTarget });
-    const r = await this.run(input, { effort: "low" });
+    const r = await this.run(input, { effort: "low" }, { queue: false });
     const img = r.images.at(-1);
     if (!img) {
       if (r.imageLimit) throw new CodexError("limit", "image limit", { retryAt: isoOf(r.imageLimit.resetsAt) ?? await this.retryAt() });
@@ -412,9 +415,11 @@ export class CodexBridge {
       const texts = [];
       let imageLimit = null;
       let settled = false;
+      this.turns++;
       const done = (err, value) => {
         if (settled) return;
         settled = true;
+        this.turns--;
         clearTimeout(timer);
         this.listeners.delete(on);
         if (err) reject(err); else resolve(value);
@@ -434,7 +439,7 @@ export class CodexBridge {
       this.listeners.add(on);
       const timer = setTimeout(() => {
         done(new CodexError("slow", "turn timed out"));
-        this.stop(); // a stuck app server gets a fresh process on the next call
+        if (this.turns === 0) this.stop(); // a stuck app server gets a fresh process (never under other running turns)
       }, this.timeoutMs);
       this.request("turn/start", { threadId, input, ...turnParams }).catch((e) => done(e));
     });
