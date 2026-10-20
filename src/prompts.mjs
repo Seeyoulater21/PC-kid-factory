@@ -23,7 +23,7 @@ export const NO_TEXT =
   "No text, letters, numbers, words, signs with writing or speech bubbles anywhere in the image.";
 
 export const DOT_EYES =
-  "Every character, people and animals alike, has simple solid black dot eyes: small filled black ovals with no eye whites, no irises, no big pupils and no shine. Feelings show through the mouth, eyebrows and body, never through big or wide eyes.";
+  "Every character, people and animals alike, has simple solid black dot eyes: small filled black ovals with no eye whites, no irises, no big pupils and no shine (on a black animal a thin white ring around each dot may show it on the fur). Feelings show through the mouth, eyebrows and body, never through big or wide eyes.";
 
 /** The house theme: style + palette + dot eyes; part of every picture prompt. */
 export const houseTheme = (style = loadStyle()) => `${style}\n${DOT_EYES}`;

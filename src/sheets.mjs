@@ -27,19 +27,43 @@ const blank = ({ tag, kind, name, description }, extra = {}) => ({
 
 let cache = null; // { dir, list }: one shared in-memory library per data folder
 
-/** The library (seeded with the starting characters and places on first use). Every caller shares one list. */
+// The starting sheets ship ready-drawn: assets/sheets/<tag>.jpg
+const bundled = (tag) => fileURLToPath(new URL(`../assets/sheets/${tag}.jpg`, import.meta.url));
+
+/** Gives every starting sheet that has no picture yet its ready-drawn one. true when something changed. */
+function fillStarting(list) {
+  let changed = false;
+  for (const seed of seeds()) {
+    const s = list.find((x) => x.tag === seed.tag);
+    if (!s || s.chosen || s.state === "working" || !fs.existsSync(bundled(seed.tag))) continue;
+    let k = s.takes.length + 1;
+    while (fs.existsSync(path.join(sheetsDir(), `${s.tag}-${k}.jpg`))) k++;
+    const file = `${s.tag}-${k}.jpg`;
+    try {
+      fs.mkdirSync(sheetsDir(), { recursive: true });
+      fs.copyFileSync(bundled(seed.tag), path.join(sheetsDir(), file));
+    } catch {
+      continue; // disk trouble: this sheet can still be drawn from Settings
+    }
+    s.takes.push({ file, prompt: sheetPrompt(s), at: new Date().toISOString() });
+    s.chosen = file;
+    s.state = "done";
+    delete s.error;
+    changed = true;
+  }
+  return changed;
+}
+
+/** The library (seeded with the ready-drawn starting characters and places on first use). Every caller shares one list. */
 export function library() {
   if (cache?.dir === sheetsDir()) return cache.list;
   let list = readJsonFile(libFile(), null);
-  if (!Array.isArray(list)) {
-    list = seeds().map((s) => blank(s));
-    cache = { dir: sheetsDir(), list };
-    saveLibrary();
-    return list;
-  }
+  const fresh = !Array.isArray(list);
+  if (fresh) list = seeds().map((s) => blank(s));
   // "working" means the app stopped mid-picture
   for (const s of list) if (s.state === "working") s.state = s.chosen ? "done" : "todo";
   cache = { dir: sheetsDir(), list };
+  if (fillStarting(list) || fresh) saveLibrary();
   return list;
 }
 

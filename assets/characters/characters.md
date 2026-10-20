@@ -3,6 +3,8 @@
 Since v1.0 the characters and places are a shared sheet library in the data folder (`sheets/sheets.json`),
 edited in the app (Settings → ตัวละครและสถานที่). The starting set is `assets/sheets.json`:
 characters pinto, friend, mom, cat; places bedroom, living-room, bathroom, dining-room.
+They ship ready-drawn in `assets/sheets/<tag>.jpg` (drawn with ChatGPT 2026-10-20): a new library gets them,
+and an existing library gets any starting sheet that has no picture yet.
 Stories add new tagged sheets (e.g. `teacher`, `school-classroom`) that later episodes reuse.
 
 House theme (every picture): `assets/style.md` + simple solid black dot eyes for every character.

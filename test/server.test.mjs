@@ -550,17 +550,17 @@ test("ChatGPT is the default: story and pictures go through Codex, new sheets jo
   const job = await ready(api, id);
   assert.equal(job.error, undefined);
   const pages = sample.story.pages.length;
-  // pinto, friend + 4 new sheets, then every page
-  assert.equal(codex.calls.image.length, 6 + pages);
+  // the starting sheets ship ready-drawn: only the 4 new sheets, then every page
+  assert.equal(codex.calls.image.length, 4 + pages);
   lib = (await api("GET", "/api/sheets")).json.sheets;
   assert.ok(lib.find((s) => s.tag === "teacher").chosen);
   assert.deepEqual(lib.find((s) => s.tag === "teacher").usedBy, [1]);
-  assert.equal(lib.find((s) => s.tag === "mom").chosen, null, "sheets the episode does not use are not drawn");
+  assert.deepEqual(lib.find((s) => s.tag === "mom").usedBy, [], "sheets the episode does not use are not marked used");
   // a second school episode reuses every sheet
   const two = (await api("POST", "/api/episodes", { idea: sample.idea, keep: [] })).json.id;
   assert.equal((await api("GET", "/api/sheets")).json.sheets.length, lib.length);
   await ready(api, two);
-  assert.equal(codex.calls.image.length, 6 + 2 * pages);
+  assert.equal(codex.calls.image.length, 4 + 2 * pages);
 });
 
 test("a ChatGPT limit: Thai message with the time, limit flag, and Gemini can take the same job", async (t) => {
@@ -786,4 +786,17 @@ test("fake mode keeps its placeholder sheets apart from the real library", async
   await api("GET", "/api/sheets");
   assert.ok(fs.existsSync(path.join(root, "sheets-fake", "sheets.json")));
   assert.ok(!fs.existsSync(path.join(root, "sheets", "sheets.json")));
+});
+
+test("the starting characters and places come ready-drawn: a new library and an existing one without pictures", async (t) => {
+  const codex = fakeCodex();
+  const { api, root } = await start(t, { codex });
+  const lib = (await api("GET", "/api/sheets")).json.sheets;
+  const starting = ["pinto", "friend", "mom", "cat", "bedroom", "living-room", "bathroom", "dining-room"];
+  for (const tag of starting) {
+    const s = lib.find((x) => x.tag === tag);
+    assert.equal(s.chosen, `${tag}-1.jpg`, tag);
+    assert.ok(fs.statSync(path.join(root, "sheets", s.chosen)).size > 10_000, tag);
+  }
+  assert.equal(codex.calls.image.length, 0, "no ChatGPT picture");
 });
