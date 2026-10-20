@@ -175,7 +175,10 @@ async function fetchPart({ fetch, dir, part, onProgress }) {
   const r = spawnSync(tar, ["-xzf", part.file], { cwd: dir, stdio: "ignore", timeout: 120_000, windowsHide: true });
   fs.rmSync(archive, { force: true });
   const unpacked = path.join(dir, part.from);
-  if (r.status !== 0 || !fs.existsSync(unpacked)) throw Object.assign(new CodexError("failed", "unpack failed"), { thai: "แตกไฟล์ ChatGPT ไม่สำเร็จ ลองใหม่" });
+  if (r.status !== 0 || !fs.existsSync(unpacked)) {
+    fs.rmSync(unpacked, { force: true }); // a half-unpacked binary must not count as installed next time
+    throw Object.assign(new CodexError("failed", "unpack failed"), { thai: "แตกไฟล์ ChatGPT ไม่สำเร็จ ลองใหม่" });
+  }
   if (unpacked !== part.out) fs.renameSync(unpacked, part.out);
   if (process.platform !== "win32") fs.chmodSync(part.out, 0o755);
 }
