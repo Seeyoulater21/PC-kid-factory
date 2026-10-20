@@ -1,6 +1,9 @@
 # Kid Factory v1 handoff
 
 ## Status
+v1.2.0 (2026-10-20, #18): ChatGPT page pictures run five at once (`image()` uses `run(..., { queue: false })`;
+text jobs keep the serial chain). A timeout still restarts Codex (in-flight pictures fail, retryable). Real five-wide
+run on the plan not seen yet. Known gap: `thread/start`/`initialize` requests have no timeout (pre-existing).
 v1.1.0 (2026-10-20, #17): every story page has a camera `shot` (`SHOTS` in `src/prompts.mjs`: wide, medium, closeup,
 detail, child-eye, adult-eye, over-shoulder) with mix rules in the story prompt; the picture prompt adds a Camera line.
 Old episodes have no shot. Real story checked (good mix); real pictures judged in the owner's whole-app test.
@@ -52,7 +55,7 @@ No owner check per issue for this app: build, test, review, ship, close; the own
   - Page refs: style picture (`origin.jpg`), each cast sheet, the place sheet (not for close-ups). Pictures are
     centre-cropped to 1920×1080; sheets keep their shape.
   - Packaging: `ep.package`; the cover title is drawn with the bundled Kanit Bold (OFL) over a text-free picture.
-  - One picture job at a time across all episodes (and sheet jobs).
+  - One picture job at a time across all episodes (and sheet jobs); inside a job, five ChatGPT pictures at once (#18).
 
 ## Owner decisions
 - Stories are plain everyday lessons (#8): one daily routine, the habit as copyable steps, one short gentle reason,
