@@ -5,7 +5,7 @@ import { GeminiError, MODELS } from "../src/gemini.mjs";
 import {
   ideas, writeStory, validateStory, pageBudget, estimateSeconds, imagePrompt,
 } from "../src/story.mjs";
-import { loadCast, loadStyle, NO_TEXT, DOT_EYES, storyPrompt, ideasPrompt, sheetPrompt } from "../src/prompts.mjs";
+import { loadCast, loadStyle, NO_TEXT, DOT_EYES, SHOTS, storyPrompt, ideasPrompt, sheetPrompt } from "../src/prompts.mjs";
 
 // The starting library (characters pinto, friend, mom, cat; places bedroom, living-room, bathroom, dining-room).
 const LIB = JSON.parse(fs.readFileSync(new URL("../assets/sheets.json", import.meta.url), "utf8"));
@@ -35,6 +35,7 @@ function page(i, extra = {}) {
     cast: ["pinto", "friend", "cat"],
     location: "living-room",
     props: [],
+    shot: "medium",
     ...extra,
   };
 }
@@ -414,6 +415,25 @@ test("imagePrompt has the house theme, every cast member's look, the place, time
   assert.ok(!p.includes(LIB.find((x) => x.tag === "friend").description));
   const low = p.toLowerCase();
   for (const w of FORBIDDEN) assert.ok(!low.includes(w), `mentions ${w}`);
+});
+
+test("camera shots: each page picks one from a fixed list, the story prompt asks for a film-like mix, the picture prompt leads with it", () => {
+  for (const id of ["wide", "medium", "closeup", "detail", "child-eye", "adult-eye", "over-shoulder"]) assert.ok(SHOTS[id], id);
+  const sp = storyPrompt(idea(1), pageBudget(5), LIB);
+  assert.match(sp, /shot:/);
+  assert.match(sp, /page 1 .*wide/i);
+  assert.match(sp, /more than twice in a row/);
+  for (const id of Object.keys(SHOTS)) assert.ok(sp.includes(`"${id}"`), `story prompt lists ${id}`);
+
+  const s = story(14);
+  s.pages[2].shot = "drone";
+  assert.match(validate(s).join("; "), /page 3.*shot/);
+
+  const p = imagePrompt({ ...page(1), shot: "child-eye" }, story(14), LIB);
+  const cam = p.indexOf(`Camera: ${SHOTS["child-eye"]}`);
+  assert.ok(cam >= 0, "camera line");
+  assert.ok(cam < p.indexOf("Scene ("), "the camera comes before the scene");
+  assert.ok(!imagePrompt({ scene: "x", cast: ["pinto"] }, story(14), LIB).includes("Camera:"), "episodes from before shots have no camera line");
 });
 
 test("imagePrompt of an episode from before the library still describes its side characters and main cast", () => {

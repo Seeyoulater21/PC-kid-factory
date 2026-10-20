@@ -1,7 +1,7 @@
 // Story engine: topic -> 3 ideas -> a validated picture-book story.
 import { GeminiError, MODELS } from "./gemini.mjs";
 import {
-  ideasPrompt, storyPrompt, retryNote, IDEAS_SCHEMA, STORY_SCHEMA, FORBIDDEN_LOOKS,
+  ideasPrompt, storyPrompt, retryNote, IDEAS_SCHEMA, STORY_SCHEMA, FORBIDDEN_LOOKS, SHOTS,
 } from "./prompts.mjs";
 import { TAG_RE, KINDS } from "./sheets.mjs";
 
@@ -100,6 +100,7 @@ export function validateStory(s, { minutes = 5, library = [] } = {}) {
     for (const id of cast) {
       if (!tags.character.has(id)) problems.push(`${at}: cast tag "${id}" is not a library character or a newSheets character`);
     }
+    if (!SHOTS[p.shot]) problems.push(`${at}: shot "${p.shot}" is not one of ${Object.keys(SHOTS).join(", ")}`);
     if (p.location && !tags.place.has(p.location)) problems.push(`${at}: location "${p.location}" is not a library place or a newSheets place`);
     for (const id of p.props ?? []) if (!propIds.has(id)) problems.push(`${at}: prop "${id}" is not in props`);
     if (cast.includes("pinto")) pintoSeen = true;
@@ -136,6 +137,7 @@ function normalize(raw, library) {
             cast: Array.isArray(p.cast) ? p.cast.map(tag).filter(Boolean) : [],
             location: tag(p.location),
             props: Array.isArray(p.props) ? p.props.map(tag).filter(Boolean) : [],
+            shot: tag(p.shot),
           }
         : p),
   };

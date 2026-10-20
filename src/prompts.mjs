@@ -34,6 +34,17 @@ export const FORBIDDEN_LOOKS = ["panda", "rabbit", "bunny", "penguin", "kappa"];
 export const SAFE_DRESS =
   "Characters are always fully dressed in their fixed outfits; no nudity, and no bathing or toilet scenes shown in detail.";
 
+// Camera shot per page (#17): the story picks one, the picture prompt leads with its description.
+export const SHOTS = {
+  wide: "wide establishing shot: the whole place is visible and the characters are small to medium in the frame",
+  medium: "medium shot: the characters from the waist up fill most of the frame, with only part of the room behind them",
+  closeup: "close-up: one character's head and shoulders fill the frame and the facial expression is clear; the background is soft and simple",
+  detail: "detail close-up: the hands and the key object fill the frame; faces are mostly outside the picture",
+  "child-eye": "child's eye view: the camera is low, at a small child's eye height, looking up at the adult, who looks tall and kind",
+  "adult-eye": "adult's eye view: the camera is high where the parent stands, looking down at the child, who looks up toward the camera",
+  "over-shoulder": "over-the-shoulder shot: from just behind one character's shoulder (soft, in the near foreground) toward the other character or the thing they look at",
+};
+
 const strictObject = (properties) => ({ type: "object", properties, required: Object.keys(properties), additionalProperties: false });
 
 export const IDEAS_SCHEMA = strictObject({
@@ -62,6 +73,7 @@ export const STORY_SCHEMA = strictObject({
       cast: { type: "array", items: { type: "string" } },
       location: { type: "string" },
       props: { type: "array", items: { type: "string" } },
+      shot: { type: "string", enum: Object.keys(SHOTS) },
     }),
   },
 });
@@ -166,6 +178,11 @@ PAGES
 - cast: tags of every character visible in the picture (library characters or your newSheets characters). Pinto is in almost every page.
 - props: ids of the props visible in this picture ([] when none).
 - scene: English, for the illustrator. ALWAYS begin with the place (for example "In the bathroom at Pinto's home, beside the sink, ..."), even when it is the same place as the page before. In scenes call the boy "the friend" (never "Friend" as a name). Then say who is there, where they stand, what they are doing, their expressions, and the key objects. Show feelings with the mouth, eyebrows and body; never write "wide eyes" or "big eyes". One frozen moment, not a sequence. Never ask for written words, letters, numbers or signs.
+- shot: the camera for this picture, one of ${Object.keys(SHOTS).map((k) => `"${k}"`).join(", ")}. Film it like a gentle movie, not a stage seen from one seat:
+  - page 1 is "wide" so the viewer sees where the story happens; after that only about one page in four is "wide".
+  - Use at least four different shots in the story, and never the same shot more than twice in a row.
+  - "closeup" for a feeling; "detail" for the steps of a habit (hands, toothbrush, spoon); "child-eye" and "adult-eye" when a child and a grown-up talk; "over-shoulder" when one character watches or listens to another.
+  - Write the scene for that camera: say only what this shot can see.
 
 SAFETY
 - Gentle and safe for ages 4–10. If the idea is scary, unsafe, unclear or odd, quietly turn it into a gentle, kid-safe version of the same topic. No violence, no shaming anyone, no real brands, no real people.
@@ -242,6 +259,7 @@ export function imagePrompt(page, story, library = [], style = loadStyle()) {
   return [
     houseTheme(style),
     "",
+    ...(SHOTS[page.shot] ? [`Camera: ${SHOTS[page.shot]}.`] : []),
     `Scene (draw this place exactly as described, do not move it elsewhere): ${page.scene}`,
     ...(place ? [`The place is ${place.name} (${place.tag}): ${place.description} Same room, furniture and colours as on its place sheet.`] : []),
     ...(story.timeOfDay ? [`Time of day and light (the same on every page): ${story.timeOfDay}.`] : []),
