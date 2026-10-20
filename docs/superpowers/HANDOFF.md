@@ -1,8 +1,11 @@
 # Kid Factory v1 handoff
 
 ## Status
+v1.0.3 (2026-10-20, #16 again): pictures are drawn through Codex's code mode (`exec`), which needs
+`codex-code-mode-host(.exe)` next to the app server. `installCodex` now also fetches the pinned host (SHA-256) and
+`codexCommand` treats an install without it as not installed; code mode stays on. Real Windows picture still unconfirmed.
 v1.0.2 (2026-10-20, #16): Codex runs in the app's own Codex home (`<data>/codex/home`, `config.toml` rewritten each
-start: code mode, shell, computer use, plugins, apps off). The user's `~/.codex` plugins/MCP servers made picture turns
+start: shell, computer use, plugins, apps off). The user's `~/.codex` plugins/MCP servers made picture turns
 call `exec` (helper missing in our build) on the Windows PC. Users connect ChatGPT once more after updating.
 v1.0.1 (2026-10-20, #14): the 8 starting sheets ship ready-drawn (`assets/sheets/`); the real black cat needed a
 feedback retake ("eyes not visible") — that retake worked as designed, only the eyes changed.
