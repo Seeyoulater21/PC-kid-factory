@@ -1,0 +1,50 @@
+[
+  {
+    "tag": "pinto",
+    "kind": "character",
+    "name": "น้องปิ่นโต",
+    "description": "Pinto, a cheerful Thai girl about 6 years old: short black bob with straight bangs, round face, pink dash blush. Outfit: yellow short-sleeve shirt with small pink hearts, pink shorts, white socks, red sneakers."
+  },
+  {
+    "tag": "friend",
+    "kind": "character",
+    "name": "เพื่อน",
+    "description": "Pinto's best friend, a Thai boy about 6 years old: short messy black hair, round face, pink dash blush. Outfit: light blue T-shirt with a white star, dark green shorts, white socks, yellow sneakers."
+  },
+  {
+    "tag": "mom",
+    "kind": "character",
+    "name": "แม่",
+    "description": "Pinto's mother, a kind Thai woman in her early thirties: shoulder-length black hair tied in a low ponytail, round face, pink dash blush. Outfit: soft green short-sleeve blouse, long beige skirt, simple brown flat shoes."
+  },
+  {
+    "tag": "cat",
+    "kind": "character",
+    "name": "แมวดำ",
+    "description": "Pinto's small round house cat with jet-black fur all over its body, head, ears and tail (a fully black cat: no orange, no white, no patches), small pink nose, pink blush, a red scarf tied at the neck."
+  },
+  {
+    "tag": "bedroom",
+    "kind": "place",
+    "name": "ห้องนอนของปิ่นโต",
+    "description": "Pinto's bedroom: a small single wooden bed with a yellow blanket with small pink hearts and a white pillow, light pink walls, a white window with sky-blue curtains, a small wooden desk with a round lamp, a round blue rug, a low white shelf with picture books and a brown teddy bear."
+  },
+  {
+    "tag": "living-room",
+    "kind": "place",
+    "name": "ห้องนั่งเล่น",
+    "description": "the family living room: a soft sky-blue sofa with two yellow cushions, a low round light-wood coffee table, cream walls, a big window with mint-green curtains, a green potted plant in a white pot, a striped pastel rug, a low wooden TV cabinet."
+  },
+  {
+    "tag": "bathroom",
+    "kind": "place",
+    "name": "ห้องน้ำ",
+    "description": "the family bathroom: a white sink on a light-wood cabinet, a round mirror above it, light blue wall tiles, a small white step stool, a pink toothbrush cup, a yellow towel on a hook, a striped bath mat. No toilet in view."
+  },
+  {
+    "tag": "dining-room",
+    "kind": "place",
+    "name": "ห้องกินข้าว",
+    "description": "the family dining room: one rectangular light-wood dining table with four matching wooden chairs, a small vase of yellow flowers in the middle of the table, cream walls, a round hanging lamp above the table, a window with yellow curtains, a low wooden sideboard."
+  }
+]

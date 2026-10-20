@@ -14,7 +14,7 @@
     <span class="grow"></span>
     <span id="ver" class="muted"></span>
     <a id="updLink" class="link" href="#" hidden>ตรวจหาอัปเดต</a>
-    <a id="keyLink" class="link" href="#/key" hidden>เปลี่ยนคีย์</a>
+    <a id="setLink" class="link" href="#/settings" hidden>ตั้งค่า</a>
   </header>
   <div id="updBanner" class="upd" hidden></div>
   <main id="app"><p class="muted">กำลังเปิด…</p></main>
@@ -31,7 +31,10 @@
     <div class="card msg-card" role="alertdialog" aria-labelledby="msgText">
       <div id="msgIcon" class="msg-icon">⚠</div>
       <div id="msgText" class="msg-text"></div>
-      <button id="msgOk" class="btn">ตกลง</button>
+      <div class="row msg-btns">
+        <button id="msgAlt" class="btn g" hidden>ใช้ Gemini แทน</button>
+        <button id="msgOk" class="btn">ตกลง</button>
+      </div>
     </div>
   </div>
 

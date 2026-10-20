@@ -1,4 +1,5 @@
-// Kid Factory UI: plain JS, hash routes (#/ library, #/new, #/key, #/ep/<id>, #/ep/<id>/video).
+// Kid Factory UI: plain JS, hash routes (#/ library, #/new, #/key, #/settings, #/ep/<id>, #/ep/<id>/video,
+// #/ep/<id>/package).
 const $ = (sel, root = document) => root.querySelector(sel);
 const app = $("#app");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -20,13 +21,18 @@ async function api(method, url, body) {
   }
   let json = null;
   try { json = await res.json(); } catch {}
-  if (!res.ok) throw new Error(json?.error || "เกิดข้อผิดพลาด ลองใหม่");
+  // limit: ChatGPT's plan limit was reached, so "use Gemini instead" can help
+  if (!res.ok) throw Object.assign(new Error(json?.error || "เกิดข้อผิดพลาด ลองใหม่"), { limit: Boolean(json?.limit) });
   return json;
 }
 
-function showError(e, icon = "⚠") {
+// retry: run the same work with Gemini; offered when the error is ChatGPT's plan limit
+function showError(e, icon = "⚠", retry = null) {
   $("#msgIcon").textContent = icon;
   $("#msgText").textContent = e?.message || String(e);
+  const alt = $("#msgAlt");
+  alt.hidden = !(retry && e?.limit);
+  alt.onclick = () => { $("#msg").hidden = true; retry(); };
   $("#msg").hidden = false;
   $("#msgOk").focus();
 }
@@ -71,6 +77,7 @@ async function route() {
   const token = ++routeToken;
   stopPoll();
   stopMusic();
+  stopSettingsPolls();
   idle();
   app.classList.remove("wide");
   let s;
@@ -84,7 +91,7 @@ async function route() {
   if (token !== routeToken) return;
   state = s;
   $("#fakeBadge").hidden = !state.fake;
-  $("#keyLink").hidden = !state.hasKey;
+  $("#setLink").hidden = !state.hasKey;
   $("#ver").textContent = `v${state.version}`;
   if (!updateChecked) {
     updateChecked = true;
@@ -99,7 +106,9 @@ async function route() {
   const h = location.hash || "#/";
   let m;
   if (!state.hasKey || h === "#/key") return keyScreen();
+  if (h === "#/settings") return settingsScreen();
   if ((m = h.match(/^#\/ep\/([^/]+)\/video$/))) return episodeScreen(m[1], "video", token);
+  if ((m = h.match(/^#\/ep\/([^/]+)\/package$/))) return episodeScreen(m[1], "package", token);
   if ((m = h.match(/^#\/ep\/([^/]+)$/))) return episodeScreen(m[1], "room", token);
   if (h === "#/new") return newScreen();
   return homeScreen();
@@ -167,12 +176,12 @@ function keyScreen() {
     <div class="card" style="max-width:520px;margin:30px auto">
       <div class="step">${first ? "เปิดครั้งแรก" : "เปลี่ยนคีย์"}</div>
       <h1>${first ? "ยินดีต้อนรับสู่ ปิ่นโตเก่งขึ้นทุกวัน" : "เปลี่ยนคีย์ Gemini"}</h1>
-      <p class="muted">วางคีย์ Gemini ครั้งเดียว โปรแกรมจะจำไว้ในเครื่องนี้เท่านั้น<br>
+      <p class="muted">วางคีย์ Gemini ครั้งเดียว ใช้อ่านเสียงเล่าเรื่อง โปรแกรมจะจำไว้ในเครื่องนี้เท่านั้น<br>
       ขอคีย์ได้ที่ Google AI Studio → “Get API key”</p>
       <input id="key" type="password" placeholder="วางคีย์ Gemini ที่นี่" autocomplete="off" spellcheck="false">
       <div class="row" style="margin-top:12px">
         <button id="saveKey" class="btn">บันทึกคีย์</button>
-        ${first ? "" : `<a class="btn g" href="#/">ยกเลิก</a>`}
+        ${first ? "" : `<a class="btn g" href="#/settings">ยกเลิก</a>`}
       </div>
     </div>`;
   const input = $("#key");
@@ -219,17 +228,17 @@ function newScreen() {
     </div>`;
 
   const topic = $("#topic");
-  const think = async () => {
+  const think = async (provider) => {
     topicText = topic.value.trim();
     if (!topicText) return showError(new Error("พิมพ์หัวข้อก่อนนะ"));
     busy("กำลังคิดเรื่อง…", "รอสักครู่");
     try {
-      ideasFound = (await api("POST", "/api/ideas", { topic: topicText })).ideas;
+      ideasFound = (await api("POST", "/api/ideas", { topic: topicText, provider })).ideas;
       ideaPicked = null;
       drawIdeas();
-    } catch (e) { showError(e); } finally { idle(); }
+    } catch (e) { showError(e, "⚠", () => think("gemini")); } finally { idle(); }
   };
-  $("#think").onclick = think;
+  $("#think").onclick = () => think();
   topic.onkeydown = (e) => { if (e.key === "Enter") think(); };
   if (!ideasFound) topic.focus();
 
@@ -264,17 +273,17 @@ function drawIdeas() {
   }
 }
 
-async function writeStory(idea, keep) {
+async function writeStory(idea, keep, provider) {
   busy("กำลังเขียนเรื่อง… ใช้เวลาประมาณ 1–3 นาที", "อย่าเพิ่งปิดหน้าต่างนะ");
   try {
-    const { id } = await api("POST", "/api/episodes", { idea, keep });
+    const { id } = await api("POST", "/api/episodes", { idea, keep, provider });
     ideasFound = null;
     ideaPicked = null;
     topicText = "";
     location.hash = `#/ep/${id}`;
   } catch (e) {
     idle();
-    showError(e);
+    showError(e, "⚠", () => writeStory(idea, keep, "gemini"));
     // kept ideas were saved even though the story failed
     try { state = await api("GET", "/api/state"); drawSaved(); } catch {}
   }
@@ -357,7 +366,7 @@ async function episodeScreen(id, tab, token) {
   app.dataset.ep = id;
   ver = {};
   wasRunning = {};
-  for (const k of ["images", "voices", "render"]) if (job[k]?.running) wasRunning[k] = true;
+  for (const k of JOB_KINDS) if (job[k]?.running) wasRunning[k] = true;
 
   app.classList.add("wide");
   curTab = tab;
@@ -367,7 +376,7 @@ async function episodeScreen(id, tab, token) {
       <div class="card" id="screen"></div>
     </div>`;
   drawSide();
-  if (tab === "room") roomShell(); else videoShell();
+  if (tab === "room") roomShell(); else if (tab === "video") videoShell(); else packageShell();
   if (anyRunning()) startPoll();
 }
 
@@ -386,13 +395,16 @@ function drawSide() {
   const status = ep.status ?? "";
   const videoSub = rendering ? "กำลังประกอบ…" : status === "วิดีโอเสร็จ" ? "วิดีโอเสร็จ ✓" : status === "ต้องประกอบใหม่" ? "ต้องประกอบใหม่" : "ยังไม่ได้ประกอบ";
   const videoDone = !rendering && status === "วิดีโอเสร็จ";
+  const pkg = ep.package;
+  const pkgDone = Boolean(pkg?.title && pkg?.cover);
   const steps = [
     { tab: "room", href: `#/ep/${id}`, name: "ห้องทำงาน", sub: `ภาพ ${imgs}/${pages.length} · เสียง ${voices}/${pages.length}`, done: roomDone },
     { tab: "video", href: `#/ep/${id}/video`, name: "ประกอบวิดีโอ", sub: videoSub, done: videoDone },
+    { tab: "package", href: `#/ep/${id}/package`, name: "แพ็กเกจ", sub: job.package?.running ? "กำลังทำ…" : pkgDone ? "ปก ชื่อ คำอธิบาย ✓" : "ปก ชื่อ คำอธิบาย แฮชแท็ก", done: pkgDone },
   ];
-  const at = curTab === "video" ? 1 : 0;
+  const at = Math.max(0, steps.findIndex((st) => st.tab === curTab));
   const prev = at === 0 ? "#/" : steps[at - 1].href;
-  const next = at === 0 ? steps[1].href : "#/";
+  const next = at < steps.length - 1 ? steps[at + 1].href : "#/";
   box.innerHTML = `
     <a class="back" href="#/">← คลังตอน</a>
     <div class="side-ep"><span class="badge-ep">${epLabel(ep.number)}</span><div class="side-title">${esc(ep.story.title)}</div></div>
@@ -404,11 +416,13 @@ function drawSide() {
     </nav>
     <div class="side-nav">
       <a class="btn g small" href="${prev}">← ย้อนกลับ</a>
-      <a class="btn small" href="${next}">${at === 0 ? "ไปต่อ →" : "กลับคลังตอน"}</a>
+      <a class="btn small" href="${next}">${at < steps.length - 1 ? "ไปต่อ →" : "กลับคลังตอน"}</a>
     </div>`;
 }
 
-const anyRunning = () => ["images", "voices", "render"].some((k) => job[k]?.running);
+const JOB_KINDS = ["images", "voices", "render", "package"];
+const anyRunning = () => JOB_KINDS.some((k) => job[k]?.running);
+let lastBody = {}; // the last request per job kind, repeated with Gemini after a ChatGPT limit
 
 function startPoll() {
   if (poll) return;
@@ -426,10 +440,14 @@ function startPoll() {
         bumpVersions(ep, e);
         ep = e;
         refresh();
-        for (const k of ["images", "voices", "render"]) {
+        for (const k of JOB_KINDS) {
           if (wasRunning[k] && !job[k]?.running) {
             wasRunning[k] = false;
-            if (job[k]?.error) showError(new Error(job[k].error));
+            if (job[k]?.error) {
+              const body = lastBody[k];
+              showError(Object.assign(new Error(job[k].error), { limit: job[k].limit }), "⚠",
+                body ? () => startJob(k, { ...body, provider: "gemini" }) : null);
+            }
           }
         }
         if (!anyRunning()) stopPoll();
@@ -453,6 +471,7 @@ function bumpVersions(before, after) {
 async function startJob(kind, body = {}) {
   try {
     await api("POST", `/api/episodes/${encodeURIComponent(ep.id)}/${kind}`, body);
+    lastBody[kind] = body;
     job[kind] = { running: true, progress: 0, pages: body.pages };
     wasRunning[kind] = true;
     // show "working" right away
@@ -466,6 +485,7 @@ function refresh() {
   drawSide();
   if ($("#roomPages")) roomUpdate();
   if ($("#videoBox")) videoUpdate();
+  if ($("#pkgBox")) packageUpdate();
 }
 
 // page status: ✓ picture and voice done, ⏳ working, ⚠ error, else what is done so far (🖼 picture, 🔊 voice)
@@ -501,10 +521,13 @@ function roomShell() {
       <div>
         <div id="pic" class="pic"></div>
         <div id="takes" class="takes"></div>
+        <div class="fix-row">
+          <input id="fix" type="text" maxlength="300" placeholder="ภาพต้องแก้อะไร เช่น มือพัง, แมวหายไป (ไม่ใส่ = วาดใหม่ทั้งภาพ)">
+          <button id="oneImage" class="btn g">↻ ภาพใหม่</button>
+        </div>
         <div class="narr-label"><span id="pageTitle"></span><span id="savedNote" class="saved-note"></span></div>
         <textarea id="narr"></textarea>
         <div class="row" style="margin-top:8px">
-          <button id="oneImage" class="btn g">↻ ภาพใหม่</button>
           <button id="play" class="btn g">▶ ฟังเสียง</button>
           <button id="oneVoice" class="btn g">↻ เสียงใหม่</button>
         </div>
@@ -513,7 +536,12 @@ function roomShell() {
     </div>`;
   $("#allImages").onclick = () => startJob("images");
   $("#allVoices").onclick = async () => { if (await saveNarration() !== false) startJob("voices"); };
-  $("#oneImage").onclick = () => startJob("images", { pages: [sel] });
+  $("#oneImage").onclick = () => {
+    const fix = $("#fix");
+    startJob("images", { pages: [sel], feedback: fix.value.trim() });
+    fix.value = "";
+  };
+  $("#fix").onkeydown = (e) => { if (e.key === "Enter" && !$("#oneImage").disabled) $("#oneImage").click(); };
   $("#oneVoice").onclick = async () => { if (await saveNarration() !== false) startJob("voices", { pages: [sel] }); };
   $("#play").onclick = playVoice;
   const narr = $("#narr");
@@ -576,7 +604,8 @@ function roomUpdate() {
     if (!j?.running) continue;
     const total = j.pages?.length || 0;
     const done = Math.round((j.progress || 0) * total);
-    bars.push(`<div class="job">${label}… ${total ? `${done}/${total} หน้า` : ""}<div class="prog"><i style="width:${Math.round((j.progress || 0) * 100)}%"></i></div></div>`);
+    const what = j.sheet ? `กำลังวาดแผ่น “${esc(j.sheet)}” ให้คลังก่อน` : `${label}… ${total ? `${done}/${total} หน้า` : ""}`;
+    bars.push(`<div class="job">${what}<div class="prog"><i style="width:${Math.round((j.progress || 0) * 100)}%"></i></div></div>`);
   }
   $("#jobs").innerHTML = bars.join("");
 
@@ -617,7 +646,7 @@ function roomUpdate() {
     : p.voice.state === "error" ? `<span class="warn">⚠ ${esc(p.voice.error)}</span>`
     : p.voice.state === "done" && stale ? `<span class="warn">คำเล่าเปลี่ยนแล้ว กด ↻ เสียงใหม่</span>`
     : p.voice.state === "done" ? `✓ เสียง ${p.voice.seconds?.toFixed(1)} วินาที` : "ยังไม่มีเสียง";
-  const imageText = p.image.state === "done" ? "✓ ภาพ" : p.image.state === "working" ? "⏳ ภาพ" : p.image.state === "error" ? `<span class="warn">⚠ ภาพ</span>` : "ยังไม่มีภาพ";
+  const imageText = p.image.state === "done" ? `✓ ภาพ${p.image.feedback ? ` (แก้: ${esc(p.image.feedback)})` : ""}` : p.image.state === "working" ? "⏳ ภาพ" : p.image.state === "error" ? `<span class="warn">⚠ ภาพ</span>` : "ยังไม่มีภาพ";
   $("#pageState").innerHTML = `${imageText} · ${voiceText}`;
   drawTakes(p, imgRun || renderRun, voiceRun || renderRun);
 }
@@ -772,6 +801,334 @@ function videoUpdate() {
   const open = $("#openFolder");
   if (open) open.onclick = async () => {
     try { await api("POST", `/api/episodes/${encodeURIComponent(ep.id)}/open-folder`); } catch (e) { showError(e); }
+  };
+}
+
+// ---------- 5 · packaging ----------
+const PKG_FIELDS = [
+  ["title", "ชื่อตอน"],
+  ["description", "คำอธิบาย"],
+  ["hashtags", "แฮชแท็ก"],
+];
+
+function packageShell() {
+  $("#screen").innerHTML = `
+    <div class="step">3 · แพ็กเกจสำหรับอัปโหลด YouTube</div>
+    <div class="row">
+      <button id="pkgAll" class="btn">ทำแพ็กเกจ</button>
+      <span class="muted">คิดชื่อ คำอธิบาย แฮชแท็ก และวาดปก (แก้เองได้ทุกช่อง)</span>
+    </div>
+    <div id="pkgBox"></div>
+    <div class="pkg">
+      <div>
+        <div id="cover" class="pic"></div>
+        <div id="coverTakes" class="takes"></div>
+        <div class="fix-row">
+          <input id="coverFix" type="text" maxlength="300" placeholder="ปกต้องแก้อะไร เช่น แมวหายไป (ไม่ใส่ = วาดปกใหม่)">
+          <button id="coverNew" class="btn g">↻ ปกใหม่</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="pkgFolder" class="btn g small">เปิดโฟลเดอร์</button>
+          <span class="muted">ไฟล์ปก JPG อยู่ข้างไฟล์วิดีโอ</span>
+        </div>
+      </div>
+      <div>${PKG_FIELDS.map(([k, label]) => `
+        <div class="fld">
+          <div class="fld-head"><b>${label}</b><span id="${k}Note" class="saved-note"></span><span class="grow"></span>
+            <button class="btn g small" data-copy="${k}">คัดลอก</button>
+            <button class="btn g small" data-remake="${k}">↻ ทำใหม่</button>
+          </div>
+          ${k === "title" ? `<input id="pkg_${k}" type="text">` : `<textarea id="pkg_${k}" rows="${k === "description" ? 5 : 2}"></textarea>`}
+        </div>`).join("")}
+      </div>
+    </div>`;
+  $("#pkgAll").onclick = () => startJob("package", { part: "all" });
+  $("#coverNew").onclick = () => {
+    const fix = $("#coverFix");
+    startJob("package", { part: "cover", feedback: fix.value.trim() });
+    fix.value = "";
+  };
+  $("#pkgFolder").onclick = async () => {
+    try { await api("POST", `/api/episodes/${encodeURIComponent(ep.id)}/open-folder`); } catch (e) { showError(e); }
+  };
+  for (const [k] of PKG_FIELDS) {
+    const el = $(`#pkg_${k}`);
+    el.onblur = () => savePackage(k);
+    el.oninput = () => { $(`#${k}Note`).textContent = ""; };
+  }
+  document.querySelectorAll("[data-remake]").forEach((b) => { b.onclick = () => startJob("package", { part: b.dataset.remake }); });
+  document.querySelectorAll("[data-copy]").forEach((b) => { b.onclick = () => copyText(b.dataset.copy); });
+  packageUpdate(true);
+}
+
+const pkgValue = (k) => {
+  const v = ep.package?.[k];
+  return k === "hashtags" ? (v ?? []).join(" ") : v ?? "";
+};
+
+async function savePackage(k) {
+  const el = $(`#pkg_${k}`);
+  if (!el || !ep.package || el.value.trim() === pkgValue(k).trim()) return;
+  try {
+    ep = await api("PATCH", `/api/episodes/${encodeURIComponent(ep.id)}/package`, { [k]: el.value });
+    $(`#${k}Note`).textContent = k === "title" && ep.package.coverArt ? "บันทึกแล้ว ✓ ปกเปลี่ยนชื่อตามแล้ว" : "บันทึกแล้ว ✓";
+    packageUpdate(true);
+  } catch (e) { showError(e); }
+}
+
+async function copyText(k) {
+  const el = $(`#pkg_${k}`);
+  await savePackage(k);
+  try {
+    await navigator.clipboard.writeText(el.value);
+  } catch {
+    el.select();
+    document.execCommand("copy");
+  }
+  $(`#${k}Note`).textContent = "คัดลอกแล้ว ✓";
+}
+
+function packageUpdate(fill = false) {
+  drawSide();
+  const box = $("#pkgBox");
+  if (!box) return;
+  const pkg = ep.package;
+  const busyNow = Boolean(job.package?.running);
+  const blocked = busyNow || Boolean(job.images?.running);
+  box.innerHTML = busyNow ? `<div class="job">${job.package.part === "cover" ? "กำลังวาดปก…" : "กำลังทำแพ็กเกจ…"} (ประมาณ 1–3 นาที)<div class="prog"><i style="width:60%"></i></div></div>`
+    : !pkg ? `<div class="missing">ยังไม่มีแพ็กเกจ กด ทำแพ็กเกจ</div>` : "";
+  $("#pkgAll").disabled = blocked;
+  $("#coverNew").disabled = blocked;
+  document.querySelectorAll("[data-remake]").forEach((b) => { b.disabled = blocked || !pkg; });
+  document.querySelectorAll("[data-copy]").forEach((b) => { b.disabled = !pkg; });
+  for (const [k] of PKG_FIELDS) {
+    const el = $(`#pkg_${k}`);
+    el.disabled = !pkg || busyNow;
+    if (fill || (document.activeElement !== el && !$(`#${k}Note`).textContent)) el.value = pkgValue(k);
+  }
+  const cover = $("#cover");
+  const want = pkg?.cover ? mediaUrl(ep.id, pkg.cover, pkg.coverAt) : null;
+  if (want) {
+    const img = cover.querySelector("img");
+    if (!img || img.getAttribute("src") !== want) cover.innerHTML = `<img alt="ภาพปก" src="${esc(want)}">`;
+  } else cover.innerHTML = `<span>${busyNow ? "⏳ กำลังวาดปก…" : "ยังไม่มีปก"}</span>`;
+  const takes = pkg?.coverTakes ?? [];
+  const tbox = $("#coverTakes");
+  tbox.innerHTML = takes.length > 1 ? `<span>ปก${takes.map((t, i) => `<button class="take ${t.file === pkg.coverArt ? "on" : ""}" data-take="${i + 1}" ${blocked ? "disabled" : ""}>${i + 1}</button>`).join("")}</span>` : "";
+  tbox.querySelectorAll(".take").forEach((b) => {
+    b.onclick = async () => {
+      try {
+        ep = await api("POST", `/api/episodes/${encodeURIComponent(ep.id)}/package/pick`, { take: Number(b.dataset.take) });
+        packageUpdate();
+      } catch (e) { showError(e); }
+    };
+  });
+}
+
+// ---------- settings: ChatGPT, Gemini key, characters & places ----------
+let gptTimer = null;
+let sheetsTimer = null;
+let wantLogin = false; // after installing, go straight on to sign-in
+let sheets = null;     // latest /api/sheets
+let selSheet = null;   // tag of the open sheet, "+" for the add form
+let lastSheetBody = null;
+
+function stopSettingsPolls() {
+  clearTimeout(gptTimer);
+  clearTimeout(sheetsTimer);
+  gptTimer = sheetsTimer = null;
+}
+
+function settingsScreen() {
+  app.innerHTML = `
+    <a class="back" href="#/">← กลับคลังตอน</a>
+    <div class="card">
+      <h2>ChatGPT</h2>
+      <p class="muted">คิดเรื่อง เขียนบท และวาดภาพทั้งหมดด้วย ChatGPT Plus (ไม่เสียเงินเพิ่มต่อภาพ)</p>
+      <div id="gpt" class="gpt muted">กำลังตรวจ…</div>
+    </div>
+    <div class="card">
+      <h2>คีย์ Gemini</h2>
+      <p class="muted">ใช้อ่านเสียงเล่าเรื่อง และใช้วาดแทนเมื่อ ChatGPT ใช้ครบโควตา</p>
+      <a class="btn g small" href="#/key">เปลี่ยนคีย์ Gemini</a>
+    </div>
+    <div class="card">
+      <div class="row">
+        <h2 style="margin:0">ตัวละครและสถานที่</h2>
+        <span class="grow"></span>
+        <button id="makeMissing" class="btn small">วาดที่ยังไม่มี</button>
+        <button id="addSheet" class="btn g small">+ เพิ่มเอง</button>
+      </div>
+      <p class="muted">ทุกตอนใช้ชุดนี้ร่วมกัน เรื่องไหนต้องมีคนหรือสถานที่ใหม่ โปรแกรมจะวาดเพิ่มเข้าคลังให้เอง แล้วใช้ซ้ำในตอนต่อไป</p>
+      <div id="sheetJob" class="jobs"></div>
+      <div class="lib-layout">
+        <div id="sheetList" class="sheet-list"></div>
+        <div id="sheetPanel"></div>
+      </div>
+    </div>`;
+  $("#makeMissing").onclick = () => sheetJob("/api/sheets/make-missing", {});
+  $("#addSheet").onclick = () => { selSheet = "+"; drawSheets(); };
+  drawGpt();
+  loadSheets();
+}
+
+async function drawGpt() {
+  clearTimeout(gptTimer);
+  const box = $("#gpt");
+  if (!box) return;
+  let s;
+  try { s = await api("GET", "/api/chatgpt"); } catch (e) { box.textContent = e.message; return; }
+  if (!$("#gpt")) return;
+  let again = false;
+  if (s.fake) box.innerHTML = `<span class="dot ok">●</span> โหมดทดลอง (ไม่ใช้ ChatGPT จริง)`;
+  else if (!s.installed && s.install?.running) {
+    const pct = Math.round((s.install.progress || 0) * 100);
+    box.innerHTML = `กำลังติดตั้ง ChatGPT… ${pct}%<div class="prog"><i style="width:${pct}%"></i></div>`;
+    again = true;
+  } else if (s.signedIn) {
+    box.innerHTML = `<span class="dot ok">●</span> เชื่อมต่อแล้ว <b>${esc(s.email || "")}</b>${s.plan ? ` · แผน ${esc(s.plan)}` : ""}`;
+  } else {
+    const why = s.install?.error || s.error;
+    box.innerHTML = `${why ? `<div class="warn">⚠ ${esc(why)}</div>` : ""}
+      <span class="dot">●</span> ยังไม่ได้เชื่อมต่อ
+      <button id="gptGo" class="btn small">เชื่อมต่อ ChatGPT</button>
+      ${s.installed ? "" : `<span class="muted">(ครั้งแรกจะดาวน์โหลดประมาณ 90 MB)</span>`}`;
+    $("#gptGo").onclick = () => (s.installed ? gptLogin() : gptInstall());
+    if (s.installed && wantLogin) { wantLogin = false; gptLogin(); }
+  }
+  if (again || waitingLogin) gptTimer = setTimeout(drawGpt, 2000);
+}
+
+let waitingLogin = false;
+async function gptInstall() {
+  try {
+    await api("POST", "/api/chatgpt/install", {});
+    wantLogin = true;
+    drawGpt();
+  } catch (e) { showError(e); }
+}
+
+async function gptLogin() {
+  try {
+    const { url } = await api("POST", "/api/chatgpt/login", {});
+    waitingLogin = true;
+    setTimeout(() => { waitingLogin = false; }, 5 * 60 * 1000);
+    $("#gpt").innerHTML = `เปิดหน้าเข้าสู่ระบบในเบราว์เซอร์แล้ว เข้าสู่ระบบ ChatGPT ให้เสร็จแล้วกลับมาที่นี่
+      <div class="muted">ถ้าหน้าเว็บไม่เปิด <a class="link" href="${esc(url)}" target="_blank" rel="noopener">กดที่นี่</a></div>`;
+    gptTimer = setTimeout(drawGpt, 3000);
+  } catch (e) { showError(e); }
+}
+
+async function loadSheets() {
+  clearTimeout(sheetsTimer);
+  try { sheets = await api("GET", "/api/sheets"); } catch (e) { return showError(e); }
+  if (!$("#sheetList")) return;
+  drawSheets();
+  if (sheets.job.running) sheetsTimer = setTimeout(loadSheets, 1500);
+  else if (sheetsWasRunning) {
+    sheetsWasRunning = false;
+    if (sheets.job.error) {
+      const body = lastSheetBody;
+      showError(Object.assign(new Error(sheets.job.error), { limit: sheets.job.limit }), "⚠",
+        body ? () => sheetJob(body.url, { ...body.body, provider: "gemini" }) : null);
+    }
+  }
+}
+let sheetsWasRunning = false;
+
+async function sheetJob(url, body) {
+  try {
+    await api("POST", url, body);
+    lastSheetBody = { url, body };
+    sheetsWasRunning = true;
+    loadSheets();
+  } catch (e) { showError(e); }
+}
+
+const sheetUrl = (file) => `/sheets/${encodeURIComponent(file)}`;
+
+function drawSheets() {
+  if (!sheets || !$("#sheetList")) return;
+  const list = sheets.sheets;
+  const j = sheets.job;
+  const missing = list.filter((s) => !s.chosen).length;
+  const mm = $("#makeMissing");
+  mm.disabled = j.running || !missing;
+  mm.textContent = missing ? `วาดที่ยังไม่มี (${missing})` : "✓ วาดครบแล้ว";
+  const working = list.find((s) => s.tag === j.tag);
+  $("#sheetJob").innerHTML = j.running
+    ? `<div class="job">กำลังวาด “${esc(working?.name ?? "")}”… ${j.tags.length > 1 ? `${Math.round(j.progress * j.tags.length)}/${j.tags.length}` : ""}<div class="prog"><i style="width:${Math.round((j.progress || 0.1) * 100)}%"></i></div></div>`
+    : "";
+  if (!selSheet || (selSheet !== "+" && !list.some((s) => s.tag === selSheet))) selSheet = list[0]?.tag ?? "+";
+  const group = (kind, title) => `<div class="sheet-group">${title}</div>` + list.filter((s) => s.kind === kind).map((s) => `
+    <button class="sh ${s.tag === selSheet ? "on" : ""}" data-tag="${esc(s.tag)}">
+      <span class="sh-thumb">${s.chosen ? `<img alt="" src="${esc(sheetUrl(s.chosen))}">` : s.state === "working" || s.tag === j.tag ? "⏳" : "–"}</span>
+      <span class="sh-name"><b>${esc(s.name)}</b><small>${esc(s.tag)}${s.locked ? " · 🔒" : ""}${s.auto ? " · ใหม่จากเรื่อง" : ""}</small></span>
+    </button>`).join("");
+  $("#sheetList").innerHTML = group("character", "ตัวละคร") + group("place", "สถานที่");
+  $("#sheetList").querySelectorAll(".sh").forEach((b) => { b.onclick = () => { selSheet = b.dataset.tag; drawSheets(); }; });
+  drawSheetPanel();
+}
+
+let panelKey = null; // what the panel shows; a poll that changes nothing leaves it (and any typing) alone
+function drawSheetPanel() {
+  const panel = $("#sheetPanel");
+  const j = sheets.job;
+  const cur = sheets.sheets.find((x) => x.tag === selSheet);
+  const key = selSheet === "+" ? "+" : JSON.stringify([selSheet, j.running, j.tag, cur && [cur.chosen, cur.takes.length, cur.locked, cur.state, cur.error, cur.usedBy]]);
+  if (key === panelKey && panel.firstChild) return;
+  panelKey = key;
+  if (selSheet === "+") {
+    panel.innerHTML = `
+      <h2>เพิ่มตัวละครหรือสถานที่</h2>
+      <div class="row" style="margin-bottom:8px">
+        <select id="nsKind" style="width:auto"><option value="character">ตัวละคร</option><option value="place">สถานที่</option></select>
+        <input id="nsName" type="text" maxlength="60" placeholder="ชื่อ เช่น คุณยาย" style="flex:1;width:auto">
+      </div>
+      <textarea id="nsDesc" rows="4" maxlength="1000" placeholder="หน้าตาเป็นอย่างไร เช่น ผมสั้นสีเทา ใส่เสื้อสีม่วง หรือห้องมีโต๊ะกลมสีขาว"></textarea>
+      <div class="row" style="margin-top:8px"><button id="nsSave" class="btn">เพิ่มเข้าคลัง</button></div>`;
+    $("#nsSave").onclick = async () => {
+      try {
+        const { tag } = await api("POST", "/api/sheets", { kind: $("#nsKind").value, name: $("#nsName").value, description: $("#nsDesc").value });
+        selSheet = tag;
+        await loadSheets();
+        sheetJob(`/api/sheets/${encodeURIComponent(tag)}/make`, {});
+      } catch (e) { showError(e); }
+    };
+    return;
+  }
+  const s = sheets.sheets.find((x) => x.tag === selSheet);
+  if (!s) { panel.innerHTML = ""; return; }
+  const busyNow = j.running;
+  const pic = s.chosen ? `<img alt="${esc(s.name)}" src="${esc(sheetUrl(s.chosen))}">`
+    : s.state === "working" || s.tag === j.tag ? "<span>⏳ กำลังวาด…</span>"
+    : s.error ? `<span class="warn">⚠ ${esc(s.error)}</span>` : "<span>ยังไม่ได้วาด</span>";
+  const used = s.usedBy.length ? `ใช้ในตอน ${s.usedBy.map((n) => (n ? `EP${n}` : "EP–")).join(", ")}` : "ยังไม่มีตอนไหนใช้";
+  panel.innerHTML = `
+    <div class="sheet-head"><h2>${esc(s.name)}</h2><span class="tag">${esc(s.tag)}</span><span class="muted">${s.kind === "place" ? "สถานที่" : "ตัวละคร"} · ${used}</span></div>
+    <div class="pic">${pic}</div>
+    <div class="takes">${s.takes.length > 1 ? `<span>แบบ${s.takes.map((t, i) => `<button class="take ${t.file === s.chosen ? "on" : ""}" data-take="${i + 1}" ${busyNow || s.locked ? "disabled" : ""}>${i + 1}</button>`).join("")}</span>` : ""}</div>
+    <div class="fix-row">
+      <input id="shFix" type="text" maxlength="300" placeholder="ต้องแก้อะไร เช่น ตาเป็นจุดดำ, ผมยาวไป (ไม่ใส่ = วาดใหม่)" ${s.locked || !s.chosen ? "disabled" : ""}>
+      <button id="shMake" class="btn g" ${busyNow || s.locked ? "disabled" : ""}>${s.chosen ? "↻ วาดใหม่" : "วาดแผ่นนี้"}</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="shLock" class="btn g small" ${!s.chosen ? "disabled" : ""}>${s.locked ? "🔓 ปลดล็อก" : "🔒 ล็อกแบบนี้"}</button>
+      <span class="muted">${s.locked ? "ล็อกแล้ว ทุกตอนใช้แบบนี้ แก้ไม่ได้จนกว่าจะปลดล็อก" : ""}</span>
+    </div>
+    <p class="muted desc">${esc(s.description)}</p>`;
+  panel.querySelectorAll(".take").forEach((b) => {
+    b.onclick = async () => {
+      try { await api("POST", `/api/sheets/${encodeURIComponent(s.tag)}/pick`, { take: Number(b.dataset.take) }); loadSheets(); } catch (e) { showError(e); }
+    };
+  });
+  $("#shMake").onclick = () => {
+    const fix = $("#shFix");
+    sheetJob(`/api/sheets/${encodeURIComponent(s.tag)}/make`, { feedback: fix.value.trim() });
+    fix.value = "";
+  };
+  $("#shLock").onclick = async () => {
+    try { await api("POST", `/api/sheets/${encodeURIComponent(s.tag)}/lock`, { locked: !s.locked }); loadSheets(); } catch (e) { showError(e); }
   };
 }
 

@@ -1,8 +1,8 @@
-// Offline stand-in for the Gemini client (KIDFACTORY_FAKE=1): no network, no cost.
-// Ideas and story come from docs/sample-story.json; pictures are solid-colour JPEGs; voices are short tones.
+// Offline stand-in for the AI clients (KIDFACTORY_FAKE=1): no network, no cost, no ChatGPT needed.
+// Ideas, story and packaging come from docs/sample-story.json; pictures are solid-colour JPEGs; voices are short tones.
 import fs from "node:fs";
 import { createCanvas } from "@napi-rs/canvas";
-import { IDEAS_SCHEMA } from "./prompts.mjs";
+import { IDEAS_SCHEMA, PACKAGE_SCHEMA } from "./prompts.mjs";
 import { writeWav } from "./audio.mjs";
 
 const sample = () => JSON.parse(fs.readFileSync(new URL("../docs/sample-story.json", import.meta.url), "utf8"));
@@ -52,6 +52,10 @@ export function createFakeGemini({ delayMs = 400 } = {}) {
       if (schema === IDEAS_SCHEMA) {
         await wait();
         return { ideas: s.ideas };
+      }
+      if (schema === PACKAGE_SCHEMA) {
+        await wait();
+        return s.package;
       }
       await wait(delayMs * 5);
       // name the story after the idea it was asked for, so a click-through reads naturally

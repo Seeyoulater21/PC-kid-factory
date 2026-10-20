@@ -1,8 +1,12 @@
 # Kid Factory
 
 A local app that makes short illustrated story episodes for kids (about 5 minutes each):
-it writes the story, draws the pages, records Thai narration, adds music, and exports an MP4.
-The app UI is in Thai.
+it writes the story, draws the pages, records Thai narration, adds music, exports an MP4, and prepares the
+YouTube package (cover picture with the Thai title, title, description, hashtags). The app UI is in Thai.
+
+Story and pictures come from ChatGPT (a ChatGPT Plus plan, through Codex); narration from Gemini TTS.
+Characters and places live in one shared sheet library (Settings → ตัวละครและสถานที่): every episode reuses
+the same sheets, and a story that needs someone or somewhere new adds a tagged sheet that later episodes reuse.
 
 ## Start
 
@@ -20,7 +24,11 @@ Uninstall from Settings → Apps; the data folder is kept.
 Build the installer on macOS: `scripts/make-win.sh` (needs `brew install makensis`) →
 `build/KidFactory-Setup-<version>.exe`. It ships the committed code only.
 
-On first run the app asks for a Gemini API key; it is stored only in `config.json` inside the data folder.
+On first run the app asks for a Gemini API key (for the narration); it is stored only in `config.json` inside the
+data folder. Then Settings → "เชื่อมต่อ ChatGPT": the first time it downloads the official Codex app server
+(pinned version, SHA-256 checked) into the data folder, then opens the ChatGPT sign-in in the browser.
+On a Mac with `codex` already installed, that one is used. When the plan's limit is reached, the app says when
+it resets and offers "ใช้ Gemini แทน" for that job.
 
 ## Updates
 
@@ -42,9 +50,9 @@ Set `KIDFACTORY_DATA=/some/folder` to use another location.
 
 ## Fake mode
 
-`KIDFACTORY_FAKE=1 node src/server.mjs` runs with an offline fake Gemini: no key, no cost,
+`KIDFACTORY_FAKE=1 node src/server.mjs` runs with an offline fake AI: no key, no ChatGPT, no cost,
 placeholder content. Useful for trying the UI.
 
 ## Tests
 
-`npm test` (never calls the real API).
+`npm test` (never calls a real API or a real Codex).

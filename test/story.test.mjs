@@ -5,7 +5,12 @@ import { GeminiError, MODELS } from "../src/gemini.mjs";
 import {
   ideas, writeStory, validateStory, pageBudget, estimateSeconds, imagePrompt,
 } from "../src/story.mjs";
-import { loadCast, loadStyle, NO_TEXT, storyPrompt, ideasPrompt } from "../src/prompts.mjs";
+import { loadCast, loadStyle, NO_TEXT, DOT_EYES, storyPrompt, ideasPrompt, sheetPrompt } from "../src/prompts.mjs";
+
+// The starting library (characters pinto, friend, mom, cat; places bedroom, living-room, bathroom, dining-room).
+const LIB = JSON.parse(fs.readFileSync(new URL("../assets/sheets.json", import.meta.url), "utf8"));
+const validate = (s, o = {}) => validateStory(s, { library: LIB, ...o });
+const write = (g, i, o = {}) => writeStory(g, i, { library: LIB, ...o });
 
 // Fake gemini: returns queued results in order and records every call.
 function fakeGemini(results) {
@@ -28,6 +33,8 @@ function page(i, extra = {}) {
     narration: `ปิ่นโตกับเพื่อนเดินไปที่สวน หน้า ${i} ฟองสบู่ลอยฟู่ฟ่า`,
     scene: `In the garden behind Pinto's home, Pinto and the friend chase soap bubbles (page ${i}).`,
     cast: ["pinto", "friend", "cat"],
+    location: "living-room",
+    props: [],
     ...extra,
   };
 }
@@ -35,7 +42,9 @@ function story(n = 14, patch = {}) {
   return {
     title: "ฟองสบู่วิเศษ",
     mood: "playful",
-    sideCharacters: [{ id: "mom", look: "Thai woman about 35, black hair in a low bun, green apron" }],
+    timeOfDay: "morning, soft daylight",
+    props: [{ id: "soap", look: "a round pink bar of soap" }],
+    newSheets: [{ tag: "grandma", kind: "character", name: "ยาย", description: "Thai grandmother about 65, short grey hair, purple blouse" }],
     pages: Array.from({ length: n }, (_, i) => page(i + 1)),
     ...patch,
   };
@@ -106,48 +115,78 @@ test("estimateSeconds of no pages is 0", () => {
 // ---------- validateStory ----------
 
 test("validateStory accepts a good story", () => {
-  assert.deepEqual(validateStory(story(14)), []);
+  assert.deepEqual(validate(story(14)), []);
 });
 
 test("validateStory flags 21 pages", () => {
-  const p = validateStory(story(21));
+  const p = validate(story(21));
   assert.ok(p.some((m) => /21 pages/.test(m)), p.join("; "));
 });
 
 test("validateStory flags 11 pages", () => {
-  const p = validateStory(story(11));
+  const p = validate(story(11));
   assert.ok(p.some((m) => /11 pages/.test(m)), p.join("; "));
 });
 
 test("validateStory uses the budget for the requested minutes", () => {
-  assert.deepEqual(validateStory(story(8), { minutes: 3 }), []);
-  assert.ok(validateStory(story(14), { minutes: 3 }).length > 0);
+  assert.deepEqual(validate(story(8), { minutes: 3 }), []);
+  assert.ok(validate(story(14), { minutes: 3 }).length > 0);
 });
 
 test("validateStory flags empty narration", () => {
   const s = story(14);
   s.pages[3].narration = "   ";
-  const p = validateStory(s);
+  const p = validate(s);
   assert.ok(p.some((m) => /page 4/.test(m) && /narration/.test(m)), p.join("; "));
 });
 
 test("validateStory flags a cast id that is neither main nor side character", () => {
   const s = story(14);
   s.pages[2].cast = ["pinto", "teacher"];
-  const p = validateStory(s);
+  const p = validate(s);
   assert.ok(p.some((m) => /page 3/.test(m) && /teacher/.test(m)), p.join("; "));
 });
 
-test("validateStory accepts a declared side character in cast", () => {
+test("validateStory accepts a library character and a newSheets character in cast", () => {
   const s = story(14);
-  s.pages[2].cast = ["pinto", "mom"];
-  assert.deepEqual(validateStory(s), []);
+  s.pages[2].cast = ["pinto", "mom", "grandma"];
+  assert.deepEqual(validate(s), []);
+});
+
+test("validateStory: location must be a library place, a newSheets place, or empty; props must be declared", () => {
+  const s = story(14);
+  s.pages[0].location = "school";
+  s.pages[1].props = ["spoon"];
+  const p = validate(s).join("; ");
+  assert.match(p, /page 1: location "school"/);
+  assert.match(p, /page 2: prop "spoon"/);
+  s.newSheets.push({ tag: "school", kind: "place", name: "โรงเรียน", description: "a small school building" });
+  s.pages[1].props = ["soap"];
+  s.pages[2].location = "";
+  assert.deepEqual(validate(s), []);
+});
+
+test("validateStory flags a bad new sheet tag and a missing time of day", () => {
+  const s = story(14, { timeOfDay: "" });
+  s.newSheets.push({ tag: "คุณครู", kind: "character", name: "ครู", description: "x" });
+  const p = validate(s).join("; ");
+  assert.match(p, /timeOfDay/);
+  assert.match(p, /lowercase English/);
+});
+
+test("writeStory drops a new sheet the library already has, so the existing sheet is reused", async () => {
+  const s = story(14);
+  s.newSheets.push({ tag: "Mom", kind: "character", name: "แม่", description: "a different mother" });
+  s.pages[0].cast = ["pinto", "mom"];
+  const out = await write(fakeGemini([s]), idea(1));
+  assert.deepEqual(out.newSheets.map((n) => n.tag), ["grandma"]);
+  assert.deepEqual(out.pages[0].cast, ["pinto", "mom"]);
 });
 
 test("validateStory flags narration over 400 chars", () => {
   const s = story(14);
   s.pages[5].narration = "ก".repeat(401);
-  const p = validateStory(s);
+  const p = validate(s);
   assert.ok(p.some((m) => /page 6/.test(m) && /400/.test(m)), p.join("; "));
 });
 
@@ -155,19 +194,19 @@ test("validateStory flags letters from other scripts in narration (TTS would mis
   const s = story(14);
   s.pages[4].narration = "ฟองสบู่ লอยละลิ่ว";
   s.pages[6].narration = "ปิ่นโตพูดว่า OK";
-  const p = validateStory(s).join("; ");
+  const p = validate(s).join("; ");
   assert.match(p, /page 5.*non-Thai/);
   assert.match(p, /page 7.*non-Thai/);
   s.pages[4].narration = "\"เมี้ยว!\" ฟองฟู่ๆ... 3 ลูก";
   s.pages[6].narration = "ปิ่นโต";
-  assert.deepEqual(validateStory(s), []);
+  assert.deepEqual(validate(s), []);
 });
 
 test("validateStory flags missing scene, bad mood, missing title, empty cast", () => {
   const s = story(14, { mood: "angry", title: "" });
   s.pages[0].scene = "";
   s.pages[1].cast = [];
-  const p = validateStory(s).join("; ");
+  const p = validate(s).join("; ");
   assert.match(p, /mood/);
   assert.match(p, /title/);
   assert.match(p, /page 1.*scene/);
@@ -177,32 +216,32 @@ test("validateStory flags missing scene, bad mood, missing title, empty cast", (
 test("validateStory flags a story where Pinto never appears", () => {
   const s = story(14);
   for (const pg of s.pages) pg.cast = ["friend"];
-  assert.ok(validateStory(s).some((m) => /pinto/i.test(m)));
+  assert.ok(validate(s).some((m) => /pinto/i.test(m)));
 });
 
-test("validateStory flags side characters that reuse a main id or look like reference characters", () => {
+test("validateStory flags new sheets that reuse a library tag or look like reference characters", () => {
   const s = story(14, {
-    sideCharacters: [
-      { id: "cat", look: "another cat" },
-      { id: "bird", look: "a small penguin with a scarf" },
+    newSheets: [
+      { tag: "cat", kind: "character", name: "แมว", description: "another cat" },
+      { tag: "bird", kind: "character", name: "นก", description: "a small penguin with a scarf" },
     ],
   });
-  const p = validateStory(s).join("; ");
+  const p = validate(s).join("; ");
   assert.match(p, /cat/);
   assert.match(p, /penguin/);
 });
 
 test("validateStory handles garbage without throwing", () => {
-  assert.ok(validateStory(null).length > 0);
-  assert.ok(validateStory({}).length > 0);
-  assert.ok(validateStory({ pages: [null] }).length > 0);
+  assert.ok(validate(null).length > 0);
+  assert.ok(validate({}).length > 0);
+  assert.ok(validate({ pages: [null] }).length > 0);
 });
 
 // ---------- writeStory ----------
 
 test("writeStory uses the story model and returns a valid story", async () => {
   const g = fakeGemini([story(16)]);
-  const s = await writeStory(g, idea(1), { minutes: 5 });
+  const s = await write(g, idea(1), { minutes: 5 });
   assert.equal(s.pages.length, 16);
   assert.equal(g.calls[0].model, MODELS.story);
   assert.match(g.calls[0].prompt, /เรื่อง 1/);
@@ -215,14 +254,14 @@ test("writeStory strips markdown emphasis from narration but keeps the words", a
   s.pages[0].narration = "เพื่อนกระโดด *ฟุ่บ!* แล้ว **ปี๊บ!**";
   s.pages[1].narration = "กบ _ก๊าบ_ ร้องดัง";
   const g = fakeGemini([s]);
-  const out = await writeStory(g, idea(1), { minutes: 5 });
+  const out = await write(g, idea(1), { minutes: 5 });
   assert.equal(out.pages[0].narration, "เพื่อนกระโดด ฟุ่บ! แล้ว ปี๊บ!");
   assert.equal(out.pages[1].narration, "กบ ก๊าบ ร้องดัง");
 });
 
 test("writeStory retries once on an invalid story then succeeds", async () => {
   const g = fakeGemini([story(25), story(15)]);
-  const s = await writeStory(g, idea(1), {});
+  const s = await write(g, idea(1), {});
   assert.equal(g.calls.length, 2);
   assert.equal(s.pages.length, 15);
   // the retry tells the model what was wrong
@@ -231,7 +270,7 @@ test("writeStory retries once on an invalid story then succeeds", async () => {
 
 test("writeStory throws GeminiError empty with Thai message after a second invalid result", async () => {
   const g = fakeGemini([story(25), story(3)]);
-  await assert.rejects(writeStory(g, idea(1)), (e) => {
+  await assert.rejects(write(g, idea(1)), (e) => {
     assert.ok(e instanceof GeminiError);
     assert.equal(e.code, "empty");
     assert.equal(e.thai, "เขียนเรื่องไม่สำเร็จ ลองใหม่");
@@ -245,7 +284,7 @@ test("writeStory trims text fields", async () => {
   s0.title = "  ฟองสบู่วิเศษ  ";
   s0.pages[0].narration = "  สวัสดีค่ะ  ";
   const g = fakeGemini([s0]);
-  const s = await writeStory(g, idea(1));
+  const s = await write(g, idea(1));
   assert.equal(s.title, "ฟองสบู่วิเศษ");
   assert.equal(s.pages[0].narration, "สวัสดีค่ะ");
 });
@@ -253,7 +292,7 @@ test("writeStory trims text fields", async () => {
 // ---------- prompts ----------
 
 test("story prompt sets the plain everyday-lesson rules", () => {
-  const p = storyPrompt(idea(1), pageBudget(5), loadCast());
+  const p = storyPrompt(idea(1), pageBudget(5), LIB);
   assert.match(p, /ปิ่นโต/);
   assert.match(p, /เพื่อนของปิ่นโต/);
   assert.match(p, /4.{0,3}10/);
@@ -269,7 +308,7 @@ test("story prompt sets the plain everyday-lesson rules", () => {
 });
 
 test("cast brief keeps the cat an ordinary pet", () => {
-  for (const p of [ideasPrompt("กินผัก"), storyPrompt(idea(1), pageBudget(5), loadCast())]) {
+  for (const p of [ideasPrompt("กินผัก"), storyPrompt(idea(1), pageBudget(5), LIB)]) {
     const low = p.toLowerCase();
     for (const old of ["steals", "clue", "partner for jokes", "funny trouble"]) {
       assert.ok(!low.includes(old), `prompt still has: ${old}`);
@@ -278,7 +317,7 @@ test("cast brief keeps the cat an ordinary pet", () => {
 });
 
 test("story prompt spells out the child-safety rules kids could copy", () => {
-  const p = storyPrompt(idea(1), pageBudget(5), loadCast()).toLowerCase();
+  const p = storyPrompt(idea(1), pageBudget(5), LIB).toLowerCase();
   for (const phrase of [
     "only eat food an adult gives",           // food from an adult / kitchen
     "never eat leaves, flowers, berries, mushrooms or plants", // no foraging
@@ -299,13 +338,14 @@ test("ideas prompt carries the short safety rules", () => {
   }
 });
 
-test("validateStory flags a side character that is another cat", () => {
+test("validateStory flags a new character that is another cat", () => {
+  const sheet = (description) => [{ tag: "neighbor", kind: "character", name: "เพื่อนบ้าน", description }];
   for (const look of ["a grey kitten with a bell", "an orange tabby cat", "two cats"]) {
-    const s = story(14, { sideCharacters: [{ id: "neighbor", look }] });
-    assert.ok(validateStory(s).some((m) => /neighbor/.test(m) && /cat/.test(m)), look);
+    const s = story(14, { newSheets: sheet(look) });
+    assert.ok(validate(s).some((m) => /neighbor/.test(m) && /cat/.test(m)), look);
   }
-  const ok = story(14, { sideCharacters: [{ id: "bird", look: "a small blue bird, catching a seed" }] });
-  assert.deepEqual(validateStory(ok), []);
+  const ok = story(14, { newSheets: sheet("a small blue bird, catching a seed") });
+  assert.deepEqual(validate(ok), []);
 });
 
 test("ideas prompt asks for 3 plain everyday situations", () => {
@@ -321,39 +361,64 @@ test("ideas prompt asks for 3 plain everyday situations", () => {
   }
 });
 
-test("loadCast mirrors characters.md", () => {
+test("cast.json holds the narrator voice; the starting library has the 4 characters and 4 places", () => {
   const c = loadCast();
-  assert.deepEqual(c.characters.map((x) => x.id), ["pinto", "friend", "cat"]);
   assert.equal(c.voice, "en-us-sola");
-  for (const ch of c.characters) {
-    assert.ok(ch.look.length > 10);
-    assert.match(ch.sheet, /^assets\/characters\/\w+\.jpg$/);
-  }
   assert.match(c.voiceStyle, /Thai/);
-  assert.doesNotMatch(c.voiceStyle, /sound words/);
   const md = fs.readFileSync(new URL("../assets/characters/characters.md", import.meta.url), "utf8");
   assert.ok(md.includes(`voice_style: ${c.voiceStyle}`), "characters.md voice_style differs from cast.json");
+  assert.deepEqual(LIB.map((x) => x.tag), ["pinto", "friend", "mom", "cat", "bedroom", "living-room", "bathroom", "dining-room"]);
+  for (const x of LIB) assert.ok(x.name && x.description.length > 20 && ["character", "place"].includes(x.kind));
+  assert.ok(!/eyes/i.test(LIB.find((x) => x.tag === "cat").description), "the cat's eyes come from the dot-eye rule");
+});
+
+test("story prompt lists the library by tag and asks to reuse tags, add newSheets, one time of day and fixed props", () => {
+  const p = storyPrompt(idea(1), pageBudget(5), LIB);
+  for (const x of LIB) assert.ok(p.includes(`"${x.tag}" (${x.name})`), x.tag);
+  assert.match(p, /Reuse a library tag whenever it fits: a teacher is always "teacher"/);
+  assert.match(p, /newSheets/);
+  assert.match(p, /ONE part of the day/);
+  assert.match(p, /props/);
+  assert.match(p, /never write "wide eyes"/);
+});
+
+test("sheet prompts: characters get turnaround views and expressions, places are empty; all have the house theme", () => {
+  const ch = sheetPrompt(LIB[0]);
+  assert.match(ch, /front view, a side view and a back view/);
+  assert.match(ch, /expressions/);
+  const pl = sheetPrompt(LIB[4]);
+  assert.match(pl, /empty place with nobody in it/);
+  for (const p of [ch, pl]) {
+    assert.ok(p.includes(DOT_EYES) && p.includes(loadStyle()) && p.includes(NO_TEXT));
+  }
 });
 
 const FORBIDDEN = ["green cap panda", "pink rabbit", "penguin", "kappa"];
 
-test("imagePrompt has style, every cast member's look, the scene and the no-text rule", () => {
+test("imagePrompt has the house theme, every cast member's look, the place, time, props, scene and the no-text rule", () => {
   const style = loadStyle();
-  const cast = loadCast();
   const s = story(14);
-  const pg = { ...page(1), cast: ["pinto", "cat", "mom"] };
-  const p = imagePrompt(pg, s, style);
+  const pg = { ...page(1), cast: ["pinto", "cat", "grandma"], location: "dining-room", props: ["soap"] };
+  const lib = [...LIB, { ...s.newSheets[0] }];
+  const p = imagePrompt(pg, s, lib, style);
   assert.ok(p.includes(style), "style text");
+  assert.ok(p.includes(DOT_EYES), "dot eyes");
   assert.ok(p.includes(pg.scene), "scene");
   assert.ok(p.includes(NO_TEXT), "no-text phrase");
   assert.match(p, /fully dressed in their fixed outfits; no nudity, and no bathing or toilet scenes/);
-  for (const id of ["pinto", "cat"]) {
-    const ch = cast.characters.find((c) => c.id === id);
-    assert.ok(p.includes(ch.look), `${id} look`);
-  }
-  assert.ok(p.includes(s.sideCharacters[0].look), "side character look");
+  for (const tag of ["pinto", "cat", "grandma"]) assert.ok(p.includes(lib.find((x) => x.tag === tag).description), `${tag} look`);
+  assert.ok(p.includes(LIB.find((x) => x.tag === "dining-room").description), "place");
+  assert.match(p, /Time of day and light \(the same on every page\): morning, soft daylight/);
+  assert.match(p, /soap: a round pink bar of soap/);
   // characters not on the page are not described
-  assert.ok(!p.includes(cast.characters.find((c) => c.id === "friend").look));
+  assert.ok(!p.includes(LIB.find((x) => x.tag === "friend").description));
   const low = p.toLowerCase();
   for (const w of FORBIDDEN) assert.ok(!low.includes(w), `mentions ${w}`);
+});
+
+test("imagePrompt of an episode from before the library still describes its side characters and main cast", () => {
+  const old = { title: "t", mood: "calm", sideCharacters: [{ id: "teacher", look: "a kind teacher in blue" }], pages: [] };
+  const p = imagePrompt({ scene: "In the classroom", cast: ["pinto", "teacher"] }, old, []);
+  assert.match(p, /a kind teacher in blue/);
+  assert.match(p, /Pinto \(the girl\)/);
 });
