@@ -1,11 +1,12 @@
 # Kid Factory v1 handoff
 
 ## Status
+v1.0.1 (2026-10-20, #14): the 8 starting sheets ship ready-drawn (`assets/sheets/`); the real black cat needed a
+feedback retake ("eyes not visible") — that retake worked as designed, only the eyes changed.
 v1.0.0 released 2026-10-20 (#13, which replaced #9–#12): ChatGPT via Codex for ideas, story and every picture;
 shared sheet library; retakes with "what to fix"; Packaging step. Real-ChatGPT check on the Mac: sign-in, account,
 7 library sheets (dot eyes, distinct places) and the live plan-limit message worked; a full episode, a feedback
 retake and a real cover were not drawn yet (the plan limit ran out) — the owner checks them in the whole-app test.
-The first real cat sheet came out orange (copied the style picture's cat); the seed now says fully black.
 Not yet run on Windows: the Codex download (System32 tar) and the read-only Codex thread there.
 v0.5.0 released 2026-10-19: plain everyday-lesson stories (#8). v0.4.0 (same day): video look picker (#7). v0.3.0 (same day): takes per page (#6) and the v1 review fixes (#5). v0.2.0 (same day) added the
 Windows installer and launcher (#1), the real outro (#3) and the in-app update button (#2).

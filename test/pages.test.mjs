@@ -354,3 +354,26 @@ test("a missing library sheet is drawn once before the pages, then reused by the
   assert.deepEqual(findSheet("teacher").usedBy, [one.id, two.id]);
   assert.equal(library().filter((s) => s.tag.startsWith("teacher")).length, 1);
 });
+
+test("an existing library (from v1.0.0) gets the ready-drawn starting sheets it has no picture for, keeps the rest", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "kf-pg-"));
+  process.env.KIDFACTORY_DATA = root;
+  const seeds = JSON.parse(fs.readFileSync(new URL("../assets/sheets.json", import.meta.url), "utf8"));
+  fs.mkdirSync(path.join(root, "sheets"));
+  fs.writeFileSync(path.join(root, "sheets", "pinto-1.jpg"), jpeg());
+  const old = seeds.map((s) => ({ ...s, takes: [], chosen: null, locked: false, usedBy: [], auto: false, state: "todo" }));
+  Object.assign(old[0], { takes: [{ file: "pinto-1.jpg", prompt: "mine" }], chosen: "pinto-1.jpg", state: "done" });
+  old.push({ tag: "teacher", kind: "character", name: "ครู", description: "d", takes: [], chosen: null, locked: false, usedBy: [], auto: true, state: "todo" });
+  fs.writeFileSync(path.join(root, "sheets", "sheets.json"), JSON.stringify(old));
+  assert.equal(findSheet("pinto").chosen, "pinto-1.jpg");
+  assert.deepEqual(findSheet("pinto").takes.map((t) => t.prompt), ["mine"], "a drawn sheet is left alone");
+  assert.equal(findSheet("cat").chosen, "cat-1.jpg");
+  assert.equal(findSheet("teacher").chosen, null, "only the starting sheets come ready-drawn");
+  const disk = JSON.parse(fs.readFileSync(path.join(root, "sheets", "sheets.json"), "utf8"));
+  assert.equal(disk.find((s) => s.tag === "dining-room").chosen, "dining-room-1.jpg");
+  // loading again adds nothing
+  process.env.KIDFACTORY_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "kf-pg-"));
+  library();
+  process.env.KIDFACTORY_DATA = root;
+  assert.equal(findSheet("cat").takes.length, 1);
+});

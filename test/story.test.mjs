@@ -369,7 +369,7 @@ test("cast.json holds the narrator voice; the starting library has the 4 charact
   assert.ok(md.includes(`voice_style: ${c.voiceStyle}`), "characters.md voice_style differs from cast.json");
   assert.deepEqual(LIB.map((x) => x.tag), ["pinto", "friend", "mom", "cat", "bedroom", "living-room", "bathroom", "dining-room"]);
   for (const x of LIB) assert.ok(x.name && x.description.length > 20 && ["character", "place"].includes(x.kind));
-  assert.ok(!/eyes/i.test(LIB.find((x) => x.tag === "cat").description), "the cat's eyes come from the dot-eye rule");
+  assert.match(LIB.find((x) => x.tag === "cat").description, /fully black cat.*dot eyes have a thin white ring/);
 });
 
 test("story prompt lists the library by tag and asks to reuse tags, add newSheets, one time of day and fixed props", () => {
