@@ -1,6 +1,12 @@
 # Kid Factory v1 handoff
 
 ## Status
+v1.0.0 released 2026-10-20 (#13, which replaced #9–#12): ChatGPT via Codex for ideas, story and every picture;
+shared sheet library; retakes with "what to fix"; Packaging step. Real-ChatGPT check on the Mac: sign-in, account,
+7 library sheets (dot eyes, distinct places) and the live plan-limit message worked; a full episode, a feedback
+retake and a real cover were not drawn yet (the plan limit ran out) — the owner checks them in the whole-app test.
+The first real cat sheet came out orange (copied the style picture's cat); the seed now says fully black.
+Not yet run on Windows: the Codex download (System32 tar) and the read-only Codex thread there.
 v0.5.0 released 2026-10-19: plain everyday-lesson stories (#8). v0.4.0 (same day): video look picker (#7). v0.3.0 (same day): takes per page (#6) and the v1 review fixes (#5). v0.2.0 (same day) added the
 Windows installer and launcher (#1), the real outro (#3) and the in-app update button (#2).
 Installed on the owner's Mac (`/Applications/KidFactory`, open `start.command`) and Windows PC.
@@ -23,6 +29,21 @@ No owner check per issue for this app: build, test, review, ship, close; the own
   `lastLook` in config (new episodes start with it); the render stores the look in `ep.video.look`, and the
   status asks for a new render when it differs from `ep.look`
 
+- v1.0 (`src/codex.mjs`, `src/ai.mjs`, `src/sheets.mjs`, `src/package.mjs`):
+  - Codex bridge: `codex app-server` child, JSON-RPC over stdio, one ephemeral read-only thread per job, one turn
+    at a time. Settings → เชื่อมต่อ ChatGPT downloads the pinned app-server build (`CODEX_VERSION`, SHA-256) into
+    `<data>/codex/<ver>/` (Mac falls back to `codex` on PATH), then `account/login/start` opens the browser.
+  - Limits: turn error `usageLimitExceeded`/`rateLimitExceeded` or the image item's `failure` → `CodexError("limit")`
+    with the reset time; the job stops (finished pages stay) and the UI offers "ใช้ Gemini แทน" (provider: gemini).
+    One ChatGPT Plus 5-hour window drew only about 7 pictures in the test (shared with other Codex use).
+  - Library: `<data>/sheets/sheets.json` (+ `sheets-fake/` in fake mode), seeds in `assets/sheets.json`. Stories
+    return `timeOfDay`, `props`, `newSheets`, and per page `cast` tags, `location` tag ("" = close-up), `props`;
+    new sheets join the library at story time and are drawn before the pages that need them.
+  - Page refs: style picture (`origin.jpg`), each cast sheet, the place sheet (not for close-ups). Pictures are
+    centre-cropped to 1920×1080; sheets keep their shape.
+  - Packaging: `ep.package`; the cover title is drawn with the bundled Kanit Bold (OFL) over a text-free picture.
+  - One picture job at a time across all episodes (and sheet jobs).
+
 ## Owner decisions
 - Stories are plain everyday lessons (#8): one daily routine, the habit as copyable steps, one short gentle reason,
   one closing lesson line; no magic, pretend, talking objects, twists, refrain or sound words; cat is a background pet
@@ -31,6 +52,9 @@ No owner check per issue for this app: build, test, review, ship, close; the own
 - Page turn 1.5 s; intro 5 s, outro 15 s (real clips, swappable files)
 - Show name: ปิ่นโตเก่งขึ้นทุกวัน
 - Episode library: episodes are saved and listed in the app
+
+- v1.0 (#13): ChatGPT Plus through Codex for story + pictures; Gemini only for voice and as a per-job fallback;
+  starting library Pinto, friend, Mom, black cat; bedroom, living room, bathroom, dining room; dot eyes for all
 
 ## Next (GitHub issues)
 - #4 Owner check of the first real episode (EP1); story length (285–346 s vs 300 s) is judged there
