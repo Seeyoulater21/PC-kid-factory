@@ -18,7 +18,7 @@ const seeds = () => JSON.parse(fs.readFileSync(new URL("../assets/sheets.json", 
 /** The house style picture: first attachment of every picture, for drawing technique and colours only. */
 export const STYLE_REF = {
   path: fileURLToPath(new URL("../assets/characters/origin.jpg", import.meta.url)),
-  label: "house style reference ONLY: copy its drawing technique, black outlines and soft flat colours; do NOT copy its people, faces, eyes, animals, room or objects",
+  label: "house style reference ONLY: copy its drawing technique, black outlines and soft flat colours; do NOT copy its people, faces, eyes, animals (its cat is not our cat), fur colours, room or objects",
 };
 
 const blank = ({ tag, kind, name, description }, extra = {}) => ({
