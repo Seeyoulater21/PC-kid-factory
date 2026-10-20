@@ -1,6 +1,9 @@
 # Kid Factory v1 handoff
 
 ## Status
+v1.0.2 (2026-10-20, #16): Codex runs in the app's own Codex home (`<data>/codex/home`, `config.toml` rewritten each
+start: code mode, shell, computer use, plugins, apps off). The user's `~/.codex` plugins/MCP servers made picture turns
+call `exec` (helper missing in our build) on the Windows PC. Users connect ChatGPT once more after updating.
 v1.0.1 (2026-10-20, #14): the 8 starting sheets ship ready-drawn (`assets/sheets/`); the real black cat needed a
 feedback retake ("eyes not visible") — that retake worked as designed, only the eyes changed.
 v1.0.0 released 2026-10-20 (#13, which replaced #9–#12): ChatGPT via Codex for ideas, story and every picture;
@@ -58,7 +61,8 @@ No owner check per issue for this app: build, test, review, ship, close; the own
   starting library Pinto, friend, Mom, black cat; bedroom, living room, bathroom, dining room; dot eyes for all
 
 ## Next (GitHub issues)
-- #4 Owner check of the first real episode (EP1); story length (285–346 s vs 300 s) is judged there
+- #4 Owner check of the first real episode (EP1)
+- #15 Faster video export (render chunks in parallel; today ~5 min, 1–2 cores busy); story length (285–346 s vs 300 s) is judged there
 
 ## How to ship a fix
 Bump `version` in package.json (and package-lock.json), commit, then `scripts/make-release.sh notes.txt`
