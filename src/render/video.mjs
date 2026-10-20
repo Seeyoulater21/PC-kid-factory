@@ -1,5 +1,5 @@
 // Episode → MP4: intro clip, the book (frames drawn here, piped raw into ffmpeg), outro clip.
-// Video (one H.264 encode: intro + piped frames + outro) and audio (narration + looped music,
+// Video (one H.264 encode: intro fading into the piped frames, then outro) and audio (narration + looped music,
 // loudness-normalised in two passes) are built in parallel, then muxed without re-encoding video.
 import fs from "node:fs";
 import os from "node:os";
@@ -125,7 +125,9 @@ function audioGraph({ intro, outro, narration, music, mainSec }) {
   } else {
     f.push(`[na]anull[mix]`);
   }
-  f.push(`[ia][mix][oa]concat=n=3:v=0:a=1[full]`);
+  // the intro sound fades out under the start of the story (the narration itself is never faded)
+  f.push(`[ia][mix]acrossfade=d=${TIMING.introFade}:c1=tri:c2=nofade[im]`);
+  f.push(`[im][oa]concat=n=2:v=0:a=1[full]`);
   return { args, filter: f.join(";") };
 }
 
@@ -156,7 +158,7 @@ async function buildAudio({ work, intro, outro, narrationWav, music, mainSec }) 
   return final;
 }
 
-// One ffmpeg: [intro][piped frames][outro] → H.264 (video only; audio is muxed afterwards).
+// One ffmpeg: [intro ⤫ piped frames][outro] → H.264 (video only; audio is muxed afterwards).
 function encoderArgs({ W, H, intro, outro, out }) {
   const fps = TIMING.fps;
   const clip = (i, label, D) =>
@@ -167,7 +169,9 @@ function encoderArgs({ W, H, intro, outro, out }) {
     clip(0, "iv", TIMING.intro),
     `[1:v]format=yuv420p,setsar=1[mv]`,
     clip(2, "ov", TIMING.outro),
-    `[iv][mv][ov]concat=n=3:v=1:a=0[v]`,
+    // the book fades in over the end of the intro
+    `[iv][mv]xfade=transition=fade:duration=${TIMING.introFade}:offset=${TIMING.intro - TIMING.introFade}[im]`,
+    `[im][ov]concat=n=2:v=1:a=0[v]`,
   ].join(";");
   return [
     "-hide_banner", "-nostats", "-y",

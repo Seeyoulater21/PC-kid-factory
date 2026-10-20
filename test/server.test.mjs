@@ -172,7 +172,7 @@ test("PATCH narration saves and marks the voice stale", async (t) => {
   assert.equal((await api("PATCH", `/api/episodes/${id}/pages/1`, { narration: "" })).status, 400);
 });
 
-test("real length once all voices are done: timeline + 20 s", async (t) => {
+test("real length once all voices are done: timeline + 21.5 s (8 s intro, 1.5 s fade overlap, 15 s outro)", async (t) => {
   const { api } = await start(t);
   const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
   await api("POST", `/api/episodes/${id}/voices`, {});
@@ -181,7 +181,7 @@ test("real length once all voices are done: timeline + 20 s", async (t) => {
   const n = ep.story.pages.length;
   assert.equal(ep.lengthReal, true);
   // each 1 s voice: 0.4 lead + 1 + 1.0 tail; 1.5 s turns between pages; 5 s intro + 15 s outro
-  assert.ok(Math.abs(ep.seconds - (n * 2.4 + (n - 1) * 1.5 + 20)) < 0.01);
+  assert.ok(Math.abs(ep.seconds - (n * 2.4 + (n - 1) * 1.5 + 21.5)) < 0.01);
 });
 
 test("second images job returns 409; job reports progress and finishes", async (t) => {
