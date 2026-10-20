@@ -1,6 +1,9 @@
 # Kid Factory v1 handoff
 
 ## Status
+v1.1.0 (2026-10-20, #17): every story page has a camera `shot` (`SHOTS` in `src/prompts.mjs`: wide, medium, closeup,
+detail, child-eye, adult-eye, over-shoulder) with mix rules in the story prompt; the picture prompt adds a Camera line.
+Old episodes have no shot. Real story checked (good mix); real pictures judged in the owner's whole-app test.
 v1.0.3 (2026-10-20, #16 again): pictures are drawn through Codex's code mode (`exec`), which needs
 `codex-code-mode-host(.exe)` next to the app server. `installCodex` now also fetches the pinned host (SHA-256) and
 `codexCommand` treats an install without it as not installed; code mode stays on. Real Windows picture still unconfirmed.
