@@ -14,7 +14,8 @@ import { outputName } from "./render/video.mjs";
 export const PARTS = ["all", "title", "description", "hashtags"];
 export const COVER = { width: 1280, height: 720, maxBytes: 2 * 1024 * 1024 };
 const FONT = "Kanit";
-GlobalFonts.registerFromPath(fileURLToPath(new URL("../assets/fonts/Kanit-Bold.ttf", import.meta.url)), FONT);
+// from bytes: a path with Thai letters (a Thai Windows user name) cannot break it
+GlobalFonts.register(fs.readFileSync(fileURLToPath(new URL("../assets/fonts/Kanit-Bold.ttf", import.meta.url))), FONT);
 
 const epFile = (ep, rel) => path.join(dataDir(), "episodes", ep.id, rel);
 const str = (v) => (typeof v === "string" ? v.trim() : "");

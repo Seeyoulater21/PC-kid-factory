@@ -1070,9 +1070,14 @@ function drawSheets() {
   drawSheetPanel();
 }
 
+let panelKey = null; // what the panel shows; a poll that changes nothing leaves it (and any typing) alone
 function drawSheetPanel() {
   const panel = $("#sheetPanel");
   const j = sheets.job;
+  const cur = sheets.sheets.find((x) => x.tag === selSheet);
+  const key = selSheet === "+" ? "+" : JSON.stringify([selSheet, j.running, j.tag, cur && [cur.chosen, cur.takes.length, cur.locked, cur.state, cur.error, cur.usedBy]]);
+  if (key === panelKey && panel.firstChild) return;
+  panelKey = key;
   if (selSheet === "+") {
     panel.innerHTML = `
       <h2>เพิ่มตัวละครหรือสถานที่</h2>

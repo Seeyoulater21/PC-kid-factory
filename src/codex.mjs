@@ -5,6 +5,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
+import { Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { dataDir } from "./data.mjs";
 
 export const TURN_TIMEOUT_MS = 6 * 60 * 1000;
@@ -68,12 +70,16 @@ export function codexCommand({ env = process.env, exists = fs.existsSync, onPath
   return null;
 }
 
+let onPathCache = null; // checked once: the answer is asked on every Settings poll
 function codexOnPath() {
-  try {
-    return spawnSync("codex", ["--version"], { stdio: "ignore", timeout: 10_000 }).status === 0;
-  } catch {
-    return false;
+  if (onPathCache === null) {
+    try {
+      onPathCache = spawnSync("codex", ["--version"], { stdio: "ignore", timeout: 10_000 }).status === 0;
+    } catch {
+      onPathCache = false;
+    }
   }
+  return onPathCache;
 }
 
 /** Downloads and unpacks the app's own Codex app server. onProgress(0..1). */
@@ -83,30 +89,41 @@ export async function installCodex({ fetch = globalThis.fetch, onProgress = () =
   const dir = ownDir();
   fs.mkdirSync(dir, { recursive: true });
   const archive = path.join(dir, b.file);
-  let res;
-  try {
-    res = await fetch(`${RELEASE}/${b.file}`);
-  } catch (e) {
-    throw Object.assign(new CodexError("failed", `download failed: ${e?.message}`), { thai: "ต่ออินเทอร์เน็ตไม่ได้ ลองใหม่" });
-  }
-  if (!res.ok || !res.body) throw Object.assign(new CodexError("failed", `download HTTP ${res.status}`), { thai: "ดาวน์โหลด ChatGPT ไม่สำเร็จ ลองใหม่" });
-  const total = Number(res.headers.get("content-length")) || 0;
+  const fail = (msg, thai) => Object.assign(new CodexError("failed", msg), { thai });
+  // a download that stops moving for a minute is given up (weak Wi-Fi must not leave "installing" forever)
+  const ctrl = new AbortController();
+  let idle = setTimeout(() => ctrl.abort(), 60_000);
   const hash = crypto.createHash("sha256");
-  const out = fs.createWriteStream(archive);
-  let got = 0;
-  for await (const chunk of res.body) {
-    hash.update(chunk);
-    got += chunk.length;
-    if (!out.write(chunk)) await new Promise((r) => out.once("drain", r));
-    if (total) onProgress(Math.min(0.99, got / total));
+  try {
+    const res = await fetch(`${RELEASE}/${b.file}`, { signal: ctrl.signal });
+    if (!res.ok || !res.body) throw fail(`download HTTP ${res.status}`, "ดาวน์โหลด ChatGPT ไม่สำเร็จ ลองใหม่");
+    const total = Number(res.headers.get("content-length")) || 0;
+    let got = 0;
+    const count = new Transform({
+      transform(chunk, enc, cb) {
+        clearTimeout(idle);
+        idle = setTimeout(() => ctrl.abort(), 60_000);
+        hash.update(chunk);
+        got += chunk.length;
+        if (total) onProgress(Math.min(0.99, got / total));
+        cb(null, chunk);
+      },
+    });
+    await pipeline(res.body, count, fs.createWriteStream(archive));
+  } catch (e) {
+    fs.rmSync(archive, { force: true });
+    if (e instanceof CodexError) throw e;
+    throw fail(`download failed: ${e?.message}`, "ดาวน์โหลด ChatGPT ไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่");
+  } finally {
+    clearTimeout(idle);
   }
-  await new Promise((r, j) => out.end((e) => (e ? j(e) : r())));
   if (hash.digest("hex") !== b.sha256) {
     fs.rmSync(archive, { force: true });
     throw Object.assign(new CodexError("failed", "checksum mismatch"), { thai: "ไฟล์ ChatGPT ที่ดาวน์โหลดเสียหาย ลองใหม่" });
   }
-  // tar ships with macOS and with Windows 10 and later
-  const r = spawnSync("tar", ["-xzf", archive, "-C", dir], { stdio: "ignore", timeout: 120_000 });
+  // tar ships with macOS and with Windows 10 and later (System32's bsdtar: another tar on PATH may misread C:\ paths)
+  const tar = process.platform === "win32" ? path.join(process.env.SystemRoot || "C:\\Windows", "System32", "tar.exe") : "tar";
+  const r = spawnSync(tar, ["-xzf", b.file], { cwd: dir, stdio: "ignore", timeout: 120_000, windowsHide: true });
   fs.rmSync(archive, { force: true });
   if (r.status !== 0 || !fs.existsSync(ownExe())) throw Object.assign(new CodexError("failed", "unpack failed"), { thai: "แตกไฟล์ ChatGPT ไม่สำเร็จ ลองใหม่" });
   if (process.platform !== "win32") fs.chmodSync(ownExe(), 0o755);
@@ -173,20 +190,30 @@ export function parsePrompt(texts) {
 }
 
 const crash = (message) => new CodexError("crash", message);
+// Codex reset times are Unix seconds
+const isoOf = (t) => (Number.isFinite(t) ? new Date(t < 1e12 ? t * 1000 : t).toISOString() : null);
 
 export class CodexBridge {
   /** command: argv that starts the app server (default: codexCommand()); spawnFn for tests. */
   constructor({ command, cwd = dataDir(), timeoutMs = TURN_TIMEOUT_MS, env = process.env, spawnFn = spawn } = {}) {
     Object.assign(this, { command, cwd, timeoutMs, env, spawnFn });
     this.proc = null;
+    this.ready = false; // initialize + model/list done
     this.starting = null;
     this.model = null;
     this.chain = Promise.resolve(); // one turn at a time: ChatGPT limits work best in a single line
   }
 
   start() {
-    if (this.proc) return Promise.resolve();
-    this.starting ??= this.boot().finally(() => { this.starting = null; });
+    if (this.starting) return this.starting;
+    if (this.proc && this.ready) return Promise.resolve();
+    this.starting = this.boot()
+      .catch((e) => {
+        const p = this.proc; // a half-started server is not reused
+        if (p) { this.onExit(p, "Codex failed to start"); p.kill(); }
+        throw e;
+      })
+      .finally(() => { this.starting = null; });
     return this.starting;
   }
 
@@ -209,11 +236,13 @@ export class CodexBridge {
     const r = await this.request("model/list", {});
     const list = r?.data ?? [];
     this.model = (list.find((m) => m.isDefault) ?? list[0])?.model ?? null;
+    this.ready = true;
   }
 
   onExit(proc, message) {
     if (this.proc !== proc) return;
     this.proc = null;
+    this.ready = false;
     for (const { reject } of this.pending.values()) reject(crash(message));
     this.pending.clear();
     for (const f of this.listeners) f({ method: "__exit__", params: { message } });
@@ -271,7 +300,7 @@ export class CodexBridge {
     try {
       const r = await this.request("account/rateLimits/read", {});
       const w = [r?.rateLimits?.primary, r?.rateLimits?.secondary].filter((x) => x?.resetsAt).sort((a, b) => b.usedPercent - a.usedPercent)[0];
-      return w ? new Date(w.resetsAt * 1000).toISOString() : null;
+      return w ? isoOf(w.resetsAt) : null;
     } catch {
       return null;
     }
@@ -314,14 +343,19 @@ export class CodexBridge {
     if (editTarget) input.push({ type: "localImage", path: editTarget });
     const r = await this.run(input, { effort: "low" });
     const img = r.images.at(-1);
-    if (!img) throw new CodexError("empty", `no image: ${String(r.texts.at(-1) ?? "").slice(0, 200)}`);
-    return { file: img.savedPath, prompt: (feedback && parsePrompt(r.texts)) || prompt };
+    if (!img) {
+      if (r.imageLimit) throw new CodexError("limit", "image limit", { retryAt: isoOf(r.imageLimit.resetsAt) ?? await this.retryAt() });
+      throw new CodexError("empty", `no image: ${String(r.texts.at(-1) ?? "").slice(0, 200)}`);
+    }
+    const out = img.savedPath ? { file: img.savedPath } : { bytes: Buffer.from(img.result, "base64") };
+    return { ...out, prompt: (feedback && parsePrompt(r.texts)) || prompt };
   }
 
   turn(threadId, input, turnParams) {
     return new Promise((resolve, reject) => {
       const images = [];
       const texts = [];
+      let imageLimit = null;
       let settled = false;
       const done = (err, value) => {
         if (settled) return;
@@ -334,9 +368,13 @@ export class CodexBridge {
         const p = m.params ?? {};
         if (m.method === "__exit__") return done(crash(p.message));
         if (p.threadId !== threadId) return;
-        if (m.method === "item/completed" && p.item?.type === "imageGeneration" && p.item.savedPath) images.push(p.item);
+        if (m.method === "item/completed" && p.item?.type === "imageGeneration") {
+          // the picture tool reports its own plan limit on the item
+          if (p.item.savedPath || p.item.result) images.push(p.item);
+          else if (p.item.failure?.type === "usageLimitExceeded") imageLimit = p.item.failure;
+        }
         if (m.method === "item/completed" && p.item?.type === "agentMessage") texts.push(p.item.text ?? "");
-        if (m.method === "turn/completed") this.finish(p.turn, images, texts).then((v) => done(null, v), (e) => done(e));
+        if (m.method === "turn/completed") this.finish(p.turn, images, texts).then((v) => done(null, { ...v, imageLimit }), (e) => done(e));
       };
       this.listeners.add(on);
       const timer = setTimeout(() => {
@@ -350,7 +388,7 @@ export class CodexBridge {
   async finish(turn, images, texts) {
     if (turn?.status === "failed") {
       const info = turn.error?.codexErrorInfo;
-      if (info === "usageLimitExceeded") throw new CodexError("limit", "usage limit", { retryAt: await this.retryAt() });
+      if (info === "usageLimitExceeded" || info === "rateLimitExceeded") throw new CodexError("limit", "usage limit", { retryAt: await this.retryAt() });
       if (info === "unauthorized") throw new CodexError("login", "not signed in");
       throw new CodexError("failed", turn.error?.message ?? "turn failed");
     }

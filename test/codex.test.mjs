@@ -199,3 +199,45 @@ test("createAi with ChatGPT turns Codex's picture into a 1920x1080 JPEG", async 
   assert.equal(img.width, 1920);
   assert.equal(img.height, 1080);
 });
+
+test("the picture tool's own plan limit (no saved picture) is a limit with its reset time; a base64 result is used", async () => {
+  let mode = "limit";
+  const f = fakeProcess({
+    turn: (p, emit) => {
+      if (mode === "limit") emit("item/completed", { item: { type: "imageGeneration", savedPath: null, failure: { type: "usageLimitExceeded", limitId: "x", resetsAt: 1792478343 } } });
+      else emit("item/completed", { item: { type: "imageGeneration", savedPath: null, result: jpeg().toString("base64") } });
+      done(emit);
+    },
+  });
+  const b = new CodexBridge({ command: ["x"], spawnFn: f.spawnFn });
+  await assert.rejects(b.image({ prompt: "p" }), (e) => e.code === "limit" && e.retryAt === new Date(1792478343 * 1000).toISOString());
+  mode = "result";
+  const r = await b.image({ prompt: "p" });
+  assert.ok(Buffer.isBuffer(r.bytes) && r.bytes.length > 0);
+  b.stop();
+});
+
+test("callers during start-up wait until Codex is initialized; a failed start is not reused", async () => {
+  const f = fakeProcess({ turn: () => {} });
+  const b = new CodexBridge({ command: ["x"], spawnFn: f.spawnFn });
+  const [a1, a2] = await Promise.all([b.account(), b.account()]);
+  assert.equal(a1.signedIn && a2.signedIn, true);
+  const order = f.sent.map((m) => m.method);
+  assert.ok(order.indexOf("account/read") > order.indexOf("model/list"), order.join(","));
+  assert.equal(order.filter((m) => m === "initialize").length, 1);
+  b.stop();
+  let spawned = 0;
+  const bad = new CodexBridge({
+    command: ["x"],
+    spawnFn: (...a) => {
+      spawned++;
+      const proc = f.spawnFn(...a);
+      if (spawned === 1) { proc.stdin.write = () => true; setTimeout(() => proc.emit("exit", 1), 5); } // never answers, then dies
+      return proc;
+    },
+  });
+  await assert.rejects(bad.account(), (e) => e.code === "crash");
+  assert.deepEqual(await bad.account(), { signedIn: true, email: "a@b.c", plan: "plus" });
+  assert.equal(spawned, 2);
+  bad.stop();
+});

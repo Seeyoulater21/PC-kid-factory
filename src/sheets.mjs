@@ -10,7 +10,8 @@ import { errorText } from "./ai.mjs";
 export const TAG_RE = /^[a-z][a-z0-9-]{0,39}$/;
 export const KINDS = ["character", "place"];
 
-const sheetsDir = () => path.join(dataDir(), "sheets");
+// fake mode keeps its placeholder sheets apart, so they never become references for real pictures
+const sheetsDir = () => path.join(dataDir(), process.env.KIDFACTORY_FAKE === "1" ? "sheets-fake" : "sheets");
 const libFile = () => path.join(sheetsDir(), "sheets.json");
 const seeds = () => JSON.parse(fs.readFileSync(new URL("../assets/sheets.json", import.meta.url), "utf8"));
 
@@ -28,17 +29,17 @@ let cache = null; // { dir, list }: one shared in-memory library per data folder
 
 /** The library (seeded with the starting characters and places on first use). Every caller shares one list. */
 export function library() {
-  if (cache?.dir === dataDir()) return cache.list;
+  if (cache?.dir === sheetsDir()) return cache.list;
   let list = readJsonFile(libFile(), null);
   if (!Array.isArray(list)) {
     list = seeds().map((s) => blank(s));
-    cache = { dir: dataDir(), list };
+    cache = { dir: sheetsDir(), list };
     saveLibrary();
     return list;
   }
   // "working" means the app stopped mid-picture
   for (const s of list) if (s.state === "working") s.state = s.chosen ? "done" : "todo";
-  cache = { dir: dataDir(), list };
+  cache = { dir: sheetsDir(), list };
   return list;
 }
 
@@ -146,6 +147,7 @@ export async function makeSheet(tag, ai, { feedback = null, onChange = () => {} 
       editTarget: edit,
       feedback: edit ? feedback : null,
       context: `${s.kind === "place" ? "Place" : "Character"} reference sheet: ${s.name}`,
+      keepShape: true, // a sheet is never cropped: heads and feet stay on it
     });
     let k = s.takes.length + 1;
     while (fs.existsSync(path.join(sheetsDir(), `${tag}-${k}.jpg`))) k++;

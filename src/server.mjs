@@ -230,6 +230,8 @@ export function createServer(opts = {}) {
     if (running(ep.id, kind)) throw new HttpError(409, T.busy);
     if (running(ep.id, "render")) throw new HttpError(409, T.busy);
     if (kind === "images" && sheetJob.running) throw new HttpError(409, T.busySheets);
+    // one picture job at a time across all episodes: ChatGPT draws one by one, and two jobs could draw the same new sheet
+    if (kind === "images" && picturesRunning()) throw new HttpError(409, T.busyPictures);
     const g = kind === "images" ? ai(provider) : ai("gemini");
     if (kind === "voices") gemini(); // voices need the Gemini key: say so now, not per page
     const key = kind === "images" ? "image" : "voice";
@@ -570,7 +572,8 @@ export function createServer(opts = {}) {
 
   function startPackage(ep, part, { feedback = null, provider } = {}) {
     if (updating) throw new HttpError(409, T.busy);
-    if (running(ep.id, "package") || running(ep.id, "images")) throw new HttpError(409, T.busy);
+    if (running(ep.id, "package")) throw new HttpError(409, T.busy);
+    if (picturesRunning()) throw new HttpError(409, T.busyPictures);
     if (sheetJob.running) throw new HttpError(409, T.busySheets);
     if (part === "cover" && feedback && !ep.package?.coverArt) throw new HttpError(400, T.noCover);
     const g = ai(provider);
@@ -578,6 +581,7 @@ export function createServer(opts = {}) {
     jobsOf(ep.id).package = job;
     (async () => {
       if (part !== "cover") await makePackageText(ep, g, { part });
+      if (part === "title" && ep.package.coverArt) await composeCover(ep); // the title is written on the cover
       saveEpisode(ep);
       if (part === "all" || part === "cover") await makeCover(ep, g, { feedback: part === "cover" ? feedback : null });
       saveEpisode(ep);

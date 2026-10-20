@@ -23,9 +23,10 @@ export function errorText(e) {
 /** Errors that stop the rest of a job: every next picture would fail the same way. */
 export const stopsJob = (e) => e instanceof CodexError && ["limit", "login", "missing"].includes(e.code);
 
-/** Any picture → a 16:9 JPEG of FRAME size (centre crop), what the book renderer and the library expect. */
-export async function toFrame(bytes, { width = FRAME.width, height = FRAME.height } = {}) {
+/** Any picture → a 16:9 JPEG of FRAME size (centre crop), what the book renderer expects. keepShape: JPEG, no crop. */
+export async function toFrame(bytes, { width = FRAME.width, height = FRAME.height, keepShape = false } = {}) {
   const img = await loadImage(bytes);
+  if (keepShape) ({ width, height } = img);
   const c = createCanvas(width, height);
   const x = c.getContext("2d");
   const s = Math.max(width / img.width, height / img.height);
@@ -65,7 +66,7 @@ export function createAi({ provider = "chatgpt", codex, gemini }) {
     async image(req) {
       const r = chat ? await bridge().image(req) : await geminiImage(gemini(), req);
       const raw = r.bytes ?? fs.readFileSync(r.file);
-      return { bytes: await toFrame(raw), prompt: r.prompt };
+      return { bytes: await toFrame(raw, { keepShape: Boolean(req.keepShape) }), prompt: r.prompt };
     },
     speech: (text, opts) => gemini().speech(text, opts),
     music: (prompt) => gemini().music(prompt),

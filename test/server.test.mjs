@@ -713,3 +713,77 @@ test("fake mode needs no ChatGPT: status is signed in and a whole episode can be
   assert.equal(ep.story.pages[0].image.state, "done");
   assert.equal(ep.story.pages[1].image.state, "done");
 });
+
+test("remaking only the title writes the new title on the cover too", async (t) => {
+  const codex = fakeCodex();
+  const titles = ["ชื่อแรก", "ชื่อที่สอง"];
+  codex.json = async (prompt, schema) => (schema === PACKAGE_SCHEMA ? { ...sample.package, title: titles.shift() ?? "x" } : structuredClone(sample.story));
+  const { api, root } = await start(t, { gemini: fakeGemini(), codex, provider: undefined });
+  const { json: { id } } = await api("POST", "/api/episodes", { idea: sample.idea, keep: [] });
+  await api("POST", `/api/episodes/${id}/package`, { part: "all" });
+  await waitJob(api, id, "package");
+  let ep = (await api("GET", `/api/episodes/${id}`)).json;
+  const file = path.join(root, "episodes", id, ep.package.cover);
+  const before = fs.readFileSync(file);
+  await api("POST", `/api/episodes/${id}/package`, { part: "title" });
+  await waitJob(api, id, "package");
+  ep = (await api("GET", `/api/episodes/${id}`)).json;
+  assert.equal(ep.package.title, "ชื่อที่สอง");
+  assert.ok(!fs.readFileSync(file).equals(before), "the cover was redrawn with the new title");
+});
+
+test("only one picture job at a time across episodes", async (t) => {
+  const { api } = await start(t, { gemini: fakeGemini({ slow: 40 }) });
+  const one = (await api("POST", "/api/episodes", { idea: sample.idea, keep: [] })).json.id;
+  const two = (await api("POST", "/api/episodes", { idea: sample.idea, keep: [] })).json.id;
+  assert.equal((await api("POST", `/api/episodes/${one}/images`, { pages: [1, 2] })).status, 200);
+  const r = await api("POST", `/api/episodes/${two}/images`, { pages: [1] });
+  assert.equal(r.status, 409);
+  assert.match(r.json.error, /กำลังวาดภาพ/);
+  await waitJob(api, one, "images");
+  assert.equal((await api("POST", `/api/episodes/${two}/images`, { pages: [1] })).status, 200);
+  await waitJob(api, two, "images");
+});
+
+test("an episode from before v1.0 still opens, retakes (with and without feedback) and renders", async (t) => {
+  let rendered = null;
+  const render = async (ep) => { rendered = ep; return path.join(process.env.KIDFACTORY_DATA, "episodes", ep.id, "out", "x.mp4"); };
+  const codex = fakeCodex();
+  const { api, root } = await start(t, { gemini: fakeGemini(), codex, provider: undefined, render });
+  // the old shape: side characters, no location/props/timeOfDay/newSheets, takes without a prompt
+  const old = {
+    title: "เรื่องเก่า", mood: "calm",
+    sideCharacters: [{ id: "teacher", look: "a kind teacher in blue" }],
+    pages: sample.story.pages.slice(0, 3).map((p) => ({ narration: p.narration, scene: p.scene, cast: ["pinto", "teacher"] })),
+  };
+  const ep = createEpisode(sample.idea, old);
+  for (const [i, p] of ep.story.pages.entries()) {
+    const file = `img/p0${i + 1}.jpg`;
+    fs.writeFileSync(path.join(root, "episodes", ep.id, file), jpeg());
+    p.image = { state: "done", file };
+    p.imageTakes = [{ file }];
+  }
+  saveEpisode(ep);
+  assert.equal((await api("GET", `/api/episodes/${ep.id}`)).status, 200);
+  await api("POST", `/api/episodes/${ep.id}/images`, { pages: [1], feedback: "แมวหายไป" });
+  assert.equal((await waitJob(api, ep.id, "images")).error, undefined);
+  const req = codex.calls.image.at(-1);
+  assert.equal(req.feedback, "แมวหายไป");
+  assert.match(req.prompt, /a kind teacher in blue/, "the old side character is still described");
+  await api("POST", `/api/episodes/${ep.id}/images`, { pages: [2] });
+  assert.equal((await waitJob(api, ep.id, "images")).error, undefined);
+  await api("POST", `/api/episodes/${ep.id}/voices`, {});
+  await waitJob(api, ep.id, "voices");
+  assert.equal((await api("POST", `/api/episodes/${ep.id}/render`, {})).status, 200);
+  await waitJob(api, ep.id, "render");
+  assert.equal(rendered.story.pages.length, 3);
+});
+
+test("fake mode keeps its placeholder sheets apart from the real library", async (t) => {
+  const { api, root } = await start(t);
+  process.env.KIDFACTORY_FAKE = "1";
+  t.after(() => { delete process.env.KIDFACTORY_FAKE; });
+  await api("GET", "/api/sheets");
+  assert.ok(fs.existsSync(path.join(root, "sheets-fake", "sheets.json")));
+  assert.ok(!fs.existsSync(path.join(root, "sheets", "sheets.json")));
+});
