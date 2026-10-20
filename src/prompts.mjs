@@ -259,7 +259,7 @@ export function imagePrompt(page, story, library = [], style = loadStyle()) {
   return [
     houseTheme(style),
     "",
-    ...(SHOTS[page.shot] ? [`Camera: ${SHOTS[page.shot]}.`] : []),
+    ...(Object.hasOwn(SHOTS, page.shot ?? "") ? [`Camera: ${SHOTS[page.shot]}.`] : []),
     `Scene (draw this place exactly as described, do not move it elsewhere): ${page.scene}`,
     ...(place ? [`The place is ${place.name} (${place.tag}): ${place.description} Same room, furniture and colours as on its place sheet.`] : []),
     ...(story.timeOfDay ? [`Time of day and light (the same on every page): ${story.timeOfDay}.`] : []),

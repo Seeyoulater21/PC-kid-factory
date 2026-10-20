@@ -100,7 +100,7 @@ export function validateStory(s, { minutes = 5, library = [] } = {}) {
     for (const id of cast) {
       if (!tags.character.has(id)) problems.push(`${at}: cast tag "${id}" is not a library character or a newSheets character`);
     }
-    if (!SHOTS[p.shot]) problems.push(`${at}: shot "${p.shot}" is not one of ${Object.keys(SHOTS).join(", ")}`);
+    if (!Object.hasOwn(SHOTS, p.shot ?? "")) problems.push(`${at}: shot "${p.shot}" is not one of ${Object.keys(SHOTS).join(", ")}`);
     if (p.location && !tags.place.has(p.location)) problems.push(`${at}: location "${p.location}" is not a library place or a newSheets place`);
     for (const id of p.props ?? []) if (!propIds.has(id)) problems.push(`${at}: prop "${id}" is not in props`);
     if (cast.includes("pinto")) pintoSeen = true;

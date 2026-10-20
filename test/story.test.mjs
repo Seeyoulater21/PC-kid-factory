@@ -427,7 +427,9 @@ test("camera shots: each page picks one from a fixed list, the story prompt asks
 
   const s = story(14);
   s.pages[2].shot = "drone";
+  s.pages[3].shot = "constructor";
   assert.match(validate(s).join("; "), /page 3.*shot/);
+  assert.match(validate(s).join("; "), /page 4.*shot/);
 
   const p = imagePrompt({ ...page(1), shot: "child-eye" }, story(14), LIB);
   const cam = p.indexOf(`Camera: ${SHOTS["child-eye"]}`);
