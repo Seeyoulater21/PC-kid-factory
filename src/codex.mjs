@@ -254,7 +254,6 @@ export class CodexBridge {
     this.starting = null;
     this.model = null;
     this.chain = Promise.resolve(); // text jobs one at a time; pictures run side by side (#18)
-    this.turns = 0; // turns in flight
   }
 
   start() {
@@ -415,11 +414,9 @@ export class CodexBridge {
       const texts = [];
       let imageLimit = null;
       let settled = false;
-      this.turns++;
       const done = (err, value) => {
         if (settled) return;
         settled = true;
-        this.turns--;
         clearTimeout(timer);
         this.listeners.delete(on);
         if (err) reject(err); else resolve(value);
@@ -439,7 +436,7 @@ export class CodexBridge {
       this.listeners.add(on);
       const timer = setTimeout(() => {
         done(new CodexError("slow", "turn timed out"));
-        if (this.turns === 0) this.stop(); // a stuck app server gets a fresh process (never under other running turns)
+        this.stop(); // a stuck app server gets a fresh process on the next call (pictures still running fail and can be retried)
       }, this.timeoutMs);
       this.request("turn/start", { threadId, input, ...turnParams }).catch((e) => done(e));
     });

@@ -352,6 +352,25 @@ test("a ChatGPT limit stops the job: finished pages stay, the rest wait as befor
   assert.ok(ep.story.pages.every((p) => p.image.state === "done"));
 });
 
+test("five at a time: a ChatGPT limit stops new pages; pictures already drawing still finish", async () => {
+  const ep = setup();
+  ep.story.pages = Array.from({ length: 10 }, (_, i) => ({ ...ep.story.pages[0], narration: `n${i}`, image: { state: "todo" } }));
+  let calls = 0;
+  const ai = {
+    provider: "chatgpt",
+    async image() {
+      const n = ++calls;
+      await new Promise((r) => setTimeout(r, n === 1 ? 5 : 20));
+      if (n === 1) throw new CodexError("limit", "usage", { retryAt: null });
+      return { bytes: jpeg(), prompt: "p" };
+    },
+  };
+  await assert.rejects(makeImages(ep, ai), (e) => e.code === "limit");
+  const states = ep.story.pages.map((p) => p.image.state);
+  assert.equal(calls, 5, "no new page after the limit");
+  assert.deepEqual(states, ["todo", "done", "done", "done", "done", "todo", "todo", "todo", "todo", "todo"]);
+});
+
 test("a missing library sheet is drawn once before the pages, then reused by the next episode", async () => {
   process.env.KIDFACTORY_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "kf-pg-"));
   readyLibrary();
