@@ -237,13 +237,14 @@ export async function composeCover(ep) {
   x.drawImage(img, (W - img.width * s) / 2, (H - img.height * s) / 2, img.width * s, img.height * s);
 
   // title in the calm top-left area (the picture keeps it plain for this)
-  const title = pkg.title || ep.story.title;
+  // letters the bundled font has (Thai, Latin, digits, simple punctuation): emoji would differ per computer
+  const title = graphemes(pkg.title || ep.story.title).filter((g) => /^[\u0E00-\u0E7FA-Za-z0-9 !?.,:'"()&+-]+$/u.test(g)).join("").replace(/\s+/g, " ").trim();
   const box = { x: W * 0.04, y: H * 0.05, w: W * 0.5, h: H * 0.46 };
   let size = 132, lines;
   for (;; size -= 4) {
     lines = wrapTitle(x, title, box.w, size);
     const fits = lines.length <= 3 && lines.every((l) => lineWidth(x, l, size) <= box.w) && lines.length * size * 1.3 <= box.h;
-    if (fits || size <= 44) break;
+    if (fits || size <= 28) break;
   }
   const lh = size * 1.3; // room for Thai marks above and below
   let y = box.y + size * 0.62;

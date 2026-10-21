@@ -54,7 +54,8 @@ No owner check per issue for this app: build, test, review, ship, close; the own
     new sheets join the library at story time and are drawn before the pages that need them.
   - Page refs: style picture (`origin.jpg`), each cast sheet, the place sheet (not for close-ups). Pictures are
     centre-cropped to 1920×1080; sheets keep their shape.
-  - Packaging: `ep.package`; the cover title is drawn with the bundled Kanit Bold (OFL) over a text-free picture.
+  - Packaging: `ep.package`; the cover title is drawn with the bundled Mali Bold (OFL) as playful 3D letters in the
+    top-left of a text-free picture (#19).
   - One picture job at a time across all episodes (and sheet jobs); inside a job, five ChatGPT pictures at once (#18).
 
 ## Owner decisions

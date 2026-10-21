@@ -39,3 +39,8 @@ test("cover title: colourful 3D lettering in the top-left, the right side of the
   assert.ok(hues.size >= 4, `letters in many colours (${[...hues]})`);
   for (const [X, Y] of [[1000, 200], [1200, 600], [300, 650], [700, 500]]) assert.ok(grey(at(X, Y)), `picture untouched at ${X},${Y}`);
 });
+
+test("cover title: emoji are left out and a very long title still fits inside the picture", async () => {
+  const ep = { id: "e1", number: 1, story: { title: "t" }, package: { title: `ปิ่นโต 🎉 ${"ล้างมือก่อนกินข้าวทุกวัน".repeat(4)}`, coverArt: "img/cover-1.jpg" } };
+  assert.ok(await composeCover(ep));
+});
