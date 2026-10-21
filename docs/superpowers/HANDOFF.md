@@ -1,6 +1,8 @@
 # Kid Factory v1 handoff
 
 ## Status
+v1.3.0 (2026-10-21): #19 cover title as 3D lettering (Mali Bold, top-left; characters big on the right) and #20 new
+8 s intro / 15 s outro with the book cross-fading in from 6.5 s (`TIMING.introFade`). Real ChatGPT cover not seen yet.
 v1.2.0 (2026-10-20, #18): ChatGPT page pictures run five at once (`image()` uses `run(..., { queue: false })`;
 text jobs keep the serial chain). A timeout still restarts Codex (in-flight pictures fail, retryable). Real five-wide
 run on the plan not seen yet. Known gap: `thread/start`/`initialize` requests have no timeout (pre-existing).
@@ -63,7 +65,7 @@ No owner check per issue for this app: build, test, review, ship, close; the own
   one closing lesson line; no magic, pretend, talking objects, twists, refrain or sound words; cat is a background pet
 - Characters locked: girl, unnamed boy friend, black cat with a red scarf; style from `assets/characters/origin.jpg`
 - Voice: `en-us-sola`; story model: `gemini-3.8-flash`
-- Page turn 1.5 s; intro 5 s, outro 15 s (real clips, swappable files)
+- Page turn 1.5 s; intro 8 s with a 1.5 s fade into the book, outro 15 s (real clips, swappable files)
 - Show name: ปิ่นโตเก่งขึ้นทุกวัน
 - Episode library: episodes are saved and listed in the app
 
