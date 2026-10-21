@@ -285,7 +285,7 @@ Write, in Thai:
 - title: a short, warm Thai video title (at most 40 characters) that says what Pinto learns. Plain and honest: no clickbait, no shouting, no "!!!", no emoji, no ALL-CAPS, no promises the video does not keep.
 - description: 2 to 4 short Thai sentences: what happens in the story, then one line with the lesson of the story. Gentle and child-safe. No links, no emoji.
 - hashtags: 5 to 8 hashtags, each starting with "#", Thai or simple English, no spaces inside a hashtag (for example "#นิทานเด็ก", "#ปิ่นโตเก่งขึ้นทุกวัน").
-- coverScene: English, for the illustrator of the thumbnail: one happy, simple moment from this story with the characters large and close to the camera, an uncluttered background, and the right third of the picture kept calm and plain for a title.
+- coverScene: English, for the illustrator of the thumbnail: one happy, simple moment from this story with the characters large, close to the camera and on the RIGHT side of the picture, happy open faces, bright colours, an uncluttered background, and the top-left area kept calm and plain (sky, wall or soft background) for the title.
 
 Return JSON only.`;
 }
@@ -298,7 +298,7 @@ export function coverPrompt(ep, coverScene, library = [], style = loadStyle()) {
     houseTheme(style),
     "",
     `YouTube thumbnail picture, 16:9: ${coverScene}`,
-    "Big, clear characters with happy faces, bright colours, an uncluttered background. Keep the right third of the picture calm and plain so a title can be placed there later.",
+    "Thumbnail composition: the characters big, clear and close on the RIGHT half of the picture (faces large and easy to see on a small phone screen), happy faces, bright cheerful colours, an uncluttered background. Keep the TOP-LEFT area (about the left half of the width and the top 45% of the height) calm and plain so the title can be placed there later.",
     ...(people.length ? ["", `Characters (each exactly as on their character sheet):\n${people.join("\n")}`] : []),
     "",
     SAFE_DRESS,
