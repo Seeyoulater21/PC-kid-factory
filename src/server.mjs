@@ -206,7 +206,7 @@ export function createServer(opts = {}) {
       ...ep,
       look: LOOKS.includes(ep.look) ? ep.look : DEFAULT_LOOK,
       staleVoices: stale,
-      seconds: book + TIMING.intro + TIMING.outro,
+      seconds: book + TIMING.intro - TIMING.introFade + TIMING.outro,
       lengthReal: real,
       status: episodeStatus(ep),
       cost: estimateCost(ep),
