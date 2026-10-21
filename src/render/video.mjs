@@ -164,10 +164,10 @@ function encoderArgs({ W, H, intro, outro, out }) {
   const clip = (i, label, D) =>
     `[${i}:v]setpts=PTS-STARTPTS,fps=${fps},scale=${W}:${H}:force_original_aspect_ratio=decrease:force_divisible_by=2,` +
     `pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,format=yuv420p,` +
-    `tpad=stop_mode=clone:stop_duration=${D},trim=duration=${D},setpts=PTS-STARTPTS[${label}]`;
+    `tpad=stop_mode=clone:stop_duration=${D},trim=duration=${D},setpts=PTS-STARTPTS,settb=1/${fps}[${label}]`;
   const filter = [
     clip(0, "iv", TIMING.intro),
-    `[1:v]format=yuv420p,setsar=1[mv]`,
+    `[1:v]format=yuv420p,setsar=1,settb=1/${fps}[mv]`,
     clip(2, "ov", TIMING.outro),
     // the book fades in over the end of the intro
     `[iv][mv]xfade=transition=fade:duration=${TIMING.introFade}:offset=${TIMING.intro - TIMING.introFade}[im]`,

@@ -180,7 +180,7 @@ test("real length once all voices are done: timeline + 21.5 s (8 s intro, 1.5 s 
   const ep = (await api("GET", `/api/episodes/${id}`)).json;
   const n = ep.story.pages.length;
   assert.equal(ep.lengthReal, true);
-  // each 1 s voice: 0.4 lead + 1 + 1.0 tail; 1.5 s turns between pages; 5 s intro + 15 s outro
+  // each 1 s voice: 0.4 lead + 1 + 1.0 tail; 1.5 s turns between pages; 8 s intro − 1.5 s fade + 15 s outro
   assert.ok(Math.abs(ep.seconds - (n * 2.4 + (n - 1) * 1.5 + 21.5)) < 0.01);
 });
 
